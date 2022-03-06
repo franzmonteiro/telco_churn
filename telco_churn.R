@@ -7,6 +7,7 @@ library(caret)
 library(glmmTMB)
 library(lmtest)
 library(Information)
+library(performance)
 
 tc <- list.files('csvs/', pattern = '*.xlsx', full.names = T) %>% 
     map(read_xlsx) %>% 
@@ -34,7 +35,7 @@ tc <- tc %>%
 iv <- tmp$Summary
 discarded_dep_vars <- iv %>% filter(IV < .02)
 
-xpto <- tmp$Tables %>%
+graficos <- tmp$Tables %>%
     map(~ mutate(.x, nome_var = names(.x)[1])) %>% 
     map(~ rename(.x, grupo = 1)) %>% 
     reduce(rbind) %>% 
@@ -48,13 +49,12 @@ xpto <- tmp$Tables %>%
     mutate(n_grupo = cumsum(n_item == 1),
            tmp = ifelse(n_grupo %% 12 == 0, 1, 0),
            xpto = cumsum(coalesce(ifelse(tmp == 0 & lag(tmp) == 1, 1, 0), 0))) %>% 
-    group_split(xpto)
-
-graficos <- map(xpto, ~ ggplot(.x, aes(WOE, grupo)) + 
-                    geom_col() +
-                    facet_wrap(~ nome_var, scales = 'free_y') +
-                    theme_light() +
-                    labs(y = NULL))
+    group_split(xpto) %>% 
+    map(~ ggplot(.x, aes(WOE, grupo)) + 
+            geom_col() +
+            facet_wrap(~ nome_var, scales = 'free_y') +
+            theme_light() +
+            labs(y = NULL))
 
 graficos[[1]]
 graficos[[2]]
@@ -68,10 +68,15 @@ tc_test <- tc[-train,]
 
 
 # Modelagem multinivel
-train_glmm <- function(efeitos_fixos, efeitos_aleatorios) {
+train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
+                       interacoes_intra_nivel = NA,
+                       interacoes_entre_niveis = NA) {
     out <- tryCatch(
         {
             formula_str <- glue('flg_churn ~ {efeitos_fixos} + {efeitos_aleatorios}')
+            
+            if(!is.na(interacoes_intra_nivel)) formula_str <- glue('{formula_str} + {interacoes_intra_nivel}')
+            if(!is.na(interacoes_entre_niveis)) formula_str <- glue('{formula_str} + {interacoes_entre_niveis}')
             
             modelo <- glmmTMB(as.formula(formula_str),
                              data = tc_train,
@@ -81,10 +86,13 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios) {
             list(modelo = modelo,
                  statistics = tibble(efeitos_fixos = efeitos_fixos,
                                      efeitos_aleatorios = efeitos_aleatorios,
+                                     interacoes_intra_nivel = interacoes_intra_nivel,
+                                     interacoes_entre_niveis = interacoes_entre_niveis,
                                      log_lik = as.numeric(logLik(modelo)),
                                      aic = AIC(modelo),
                                      error = NA,
-                                     warning = NA)
+                                     warning = NA,
+                                     formula_str = formula_str)
             )
         },
         error=function(cond) {
@@ -92,10 +100,13 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios) {
             list(modelo = NA,
                  statistics = tibble(efeitos_fixos = efeitos_fixos,
                                      efeitos_aleatorios = efeitos_aleatorios,
+                                     interacoes_intra_nivel = interacoes_intra_nivel,
+                                     interacoes_entre_niveis = interacoes_entre_niveis,
                                      log_lik = NA,
                                      aic = NA,
                                      error = as.character(cond),
-                                     warning = NA)
+                                     warning = NA,
+                                     formula_str = formula_str)
             )
         },
         warning=function(cond) {
@@ -103,10 +114,13 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios) {
             list(modelo = NA,
                  statistics = tibble(efeitos_fixos = efeitos_fixos,
                                      efeitos_aleatorios = efeitos_aleatorios,
+                                     interacoes_intra_nivel = interacoes_intra_nivel,
+                                     interacoes_entre_niveis = interacoes_entre_niveis,
                                      log_lik = NA,
                                      aic = NA,
                                      error = NA,
-                                     warning = as.character(cond))
+                                     warning = as.character(cond),
+                                     formula_str = formula_str)
             )
         },
         finally={
@@ -126,6 +140,7 @@ dep_vars <- tc_train %>%
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
+
 filter(dep_vars, !is.na(coalesce(warning, error)))
 
 # Passo 1: Construindo modelo vazio
@@ -133,6 +148,8 @@ m0 <- glmmTMB(flg_churn ~ (1 | zip_code),
               data = tc_train,
               family = binomial,
               REML = T)
+
+icc(m0)
 
 paste(dep_vars$efeitos_fixos, collapse = ' + ')
 
@@ -142,34 +159,75 @@ dep_vars_to_test <- dep_vars %>%
 
 dep_vars_to_test <- dep_vars_to_test$efeitos_fixos
 
+
 # Doses homeopaticas.
 # A cada interacao insere uma nova variavel dependente no modelo,
 # De modo a descobrir variaveis que geram problema na convergencia.
 ci_models <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
     map(~ train_glmm(.x, '(1 | zip_code)')) %>% 
-    map_dfr(~ .x$statistics)
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
+
+ci_models_com_interacoes <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
+    map(~ train_glmm(.x, '(1 | zip_code)', 'contract:tenure_in_months_gmc')) %>%
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
+
+
+# test <- train_glmm(paste(dep_vars_to_test, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
+# test <- train_glmm(glue(" ( { paste(dep_vars_to_test, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
 
 paste(dep_vars_to_test, collapse = ' + ')
 
-cim <- glmmTMB(flg_churn ~
-                   age_gmc + number_of_dependents_gmc + zip_code_population_gmc + number_of_referrals_gmc + tenure_in_months_gmc 
-                    + avg_monthly_gb_download_gmc + monthly_charge_gmc + total_charges_gmc + total_long_distance_charges_gmc + total_revenue_gmc 
-                    + cltv_gmc + married + offer + internet_service + online_security + online_backup + device_protection_plan + premium_tech_support
-                    + streaming_tv + unlimited_data + contract + paperless_billing + payment_method
-                    + (1 | zip_code),
+best_model <- ci_models %>% filter(log_lik == max(log_lik, na.rm = T))
+
+cim <- glmmTMB(as.formula(best_model$formula_str),
                data = tc_train,
                family = binomial,
                REML = T)
 
 lrtest(m0, cim)
 
+cim_com_interacao <- glmmTMB(flg_churn ~
+                   contract + tenure_in_months_gmc + number_of_referrals_gmc + offer + internet_service 
+               + number_of_dependents_gmc + total_long_distance_charges_gmc + payment_method + total_revenue_gmc + monthly_charge_gmc
+               + paperless_billing + total_charges_gmc + unlimited_data + online_security + premium_tech_support 
+               + married + cltv_gmc + age_gmc + online_backup + streaming_tv
+               + device_protection_plan + avg_monthly_gb_download_gmc + zip_code_population_gmc
+               + (1 | zip_code) + contract:tenure_in_months_gmc,
+               data = tc_train,
+               family = binomial,
+               REML = T)
+
+lrtest(cim, cim_com_interacao)
+
+
 ai_models <- dep_vars_to_test %>% 
-    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)')))
+    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)'))) %>% 
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
 
-log_liks <- map_dfr(ai_models, ~ tibble(efeitos_aleatorios = .x$efeitos_aleatorios,
-                                        log_lik = unique(ifelse(is.na(.x$modelo), NA, as.numeric(logLik(.x$modelo)))),
-                                        aic = unique(ifelse(is.na(.x$modelo), NA, AIC(.x$modelo)))))
 
-log_liks %>% filter(log_lik == max(log_lik, na.rm = T))
+ai_models_com_interacoes <- dep_vars_to_test %>% 
+    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)'), 'contract:tenure_in_months_gmc')) %>% 
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
 
-# map(ai_models, ~ lrtest(m0, .x[['modelo']]))
+aim <- glmmTMB(flg_churn ~
+                   contract + tenure_in_months_gmc + number_of_referrals_gmc + offer + internet_service 
+               + number_of_dependents_gmc + total_long_distance_charges_gmc + payment_method + total_revenue_gmc + monthly_charge_gmc
+               + paperless_billing + total_charges_gmc + unlimited_data + online_security + premium_tech_support 
+               + married + cltv_gmc + age_gmc + online_backup + streaming_tv
+               + device_protection_plan + avg_monthly_gb_download_gmc + zip_code_population_gmc
+               + (1 + number_of_dependents_gmc || zip_code),
+               data = tc_train,
+               family = binomial,
+               REML = T)
+
+lrtest(cim, aim)
+
+
+final_models <- train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+                           '(1 + number_of_dependents_gmc || zip_code)',
+                           interacoes_intra_nivel = '',
+                           interacoes_entre_niveis = 'zip_code_population_gmc:number_of_dependents_gmc')
