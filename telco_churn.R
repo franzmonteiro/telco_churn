@@ -8,6 +8,18 @@ library(glmmTMB)
 library(lmtest)
 library(Information)
 library(performance)
+library(plotly)
+
+
+get_best_model <- function(models, log_lik_criterion = T) {
+    if(log_lik_criterion) {
+        best_model <- models %>% filter(log_lik == max(log_lik, na.rm = T))
+    } else {
+        best_model <- models %>% filter(aic == min(aic, na.rm = T))
+    }
+    
+    return(best_model)
+}
 
 tc <- list.files('csvs/', pattern = '*.xlsx', full.names = T) %>% 
     map(read_xlsx) %>% 
@@ -88,11 +100,11 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
                                      efeitos_aleatorios = efeitos_aleatorios,
                                      interacoes_intra_nivel = interacoes_intra_nivel,
                                      interacoes_entre_niveis = interacoes_entre_niveis,
+                                     formula_str = formula_str,
                                      log_lik = as.numeric(logLik(modelo)),
                                      aic = AIC(modelo),
                                      error = NA,
-                                     warning = NA,
-                                     formula_str = formula_str)
+                                     warning = NA)
             )
         },
         error=function(cond) {
@@ -102,11 +114,11 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
                                      efeitos_aleatorios = efeitos_aleatorios,
                                      interacoes_intra_nivel = interacoes_intra_nivel,
                                      interacoes_entre_niveis = interacoes_entre_niveis,
+                                     formula_str = formula_str,
                                      log_lik = NA,
                                      aic = NA,
                                      error = as.character(cond),
-                                     warning = NA,
-                                     formula_str = formula_str)
+                                     warning = NA)
             )
         },
         warning=function(cond) {
@@ -116,15 +128,15 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
                                      efeitos_aleatorios = efeitos_aleatorios,
                                      interacoes_intra_nivel = interacoes_intra_nivel,
                                      interacoes_entre_niveis = interacoes_entre_niveis,
+                                     formula_str = formula_str,
                                      log_lik = NA,
                                      aic = NA,
                                      error = NA,
-                                     warning = as.character(cond),
-                                     formula_str = formula_str)
+                                     warning = as.character(cond))
             )
         },
         finally={
-            message(formula_str)
+            message(paste(Sys.time(), formula_str, sep = ' - '))
         }
     )
     return(out)
@@ -157,7 +169,7 @@ dep_vars_to_test <- dep_vars %>%
     filter(is.na(coalesce(warning, error))) %>% 
     filter(!efeitos_fixos %in% c('zip_code', 'internet_type'))
 
-dep_vars_to_test <- dep_vars_to_test$efeitos_fixos
+(dep_vars_to_test <- dep_vars_to_test$efeitos_fixos)
 
 
 # Doses homeopaticas.
@@ -168,37 +180,84 @@ ci_models <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], col
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
-ci_models_com_interacoes <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
-    map(~ train_glmm(.x, '(1 | zip_code)', 'contract:tenure_in_months_gmc')) %>%
-    map_dfr(~ .x$statistics) %>% 
-    arrange(desc(log_lik))
+# get_best_model(ci_models) %>% 
+#     rbind(get_best_model(ci_models, F)) %>% 
+#     View()
 
-
-# test <- train_glmm(paste(dep_vars_to_test, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
-# test <- train_glmm(glue(" ( { paste(dep_vars_to_test, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
-
-paste(dep_vars_to_test, collapse = ' + ')
-
-best_model <- ci_models %>% filter(log_lik == max(log_lik, na.rm = T))
-
-cim <- glmmTMB(as.formula(best_model$formula_str),
+cim <- glmmTMB(as.formula(get_best_model(ci_models)$formula_str),
                data = tc_train,
                family = binomial,
                REML = T)
 
 lrtest(m0, cim)
 
-cim_com_interacao <- glmmTMB(flg_churn ~
-                   contract + tenure_in_months_gmc + number_of_referrals_gmc + offer + internet_service 
-               + number_of_dependents_gmc + total_long_distance_charges_gmc + payment_method + total_revenue_gmc + monthly_charge_gmc
-               + paperless_billing + total_charges_gmc + unlimited_data + online_security + premium_tech_support 
-               + married + cltv_gmc + age_gmc + online_backup + streaming_tv
-               + device_protection_plan + avg_monthly_gb_download_gmc + zip_code_population_gmc
-               + (1 | zip_code) + contract:tenure_in_months_gmc,
-               data = tc_train,
-               family = binomial,
-               REML = T)
 
+interacoes_n1 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc'] %>% 
+    combn(2) %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    mutate(interacao = glue('{V1}:{V2}'))
+
+
+ci_models_com_interacoes <- interacoes_n1$interacao %>%
+    map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos, '(1 | zip_code)', .x)) %>%
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
+
+interacoes_to_plot <- ci_models_com_interacoes %>% 
+    filter(is.na(coalesce(warning, error))) %>% 
+    left_join(interacoes_n1, by = c('interacoes_intra_nivel' = 'interacao')) %>% 
+    select(V1, V2, log_lik) %>% 
+    arrange(V1, V2)
+
+ggplot(interacoes_to_plot, aes(V1, V2, fill = log_lik)) +
+    geom_tile() +
+    scale_fill_distiller(palette = 'YlOrRd', direction = 1) +
+    theme_light() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    labs(x = NULL, y = NULL)
+
+
+# saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
+
+# test <- train_glmm(paste(dep_vars_to_test, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
+# test <- train_glmm(glue(" ( { paste(dep_vars_to_test, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
+
+# get_best_model(ci_models) %>%
+#     rbind(get_best_model(ci_models, F)) %>%
+#     View()
+
+# cim_com_interacao <- train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+#                                 '(1 | zip_code)',
+#                                 'contract:offer')
+
+cim_com_interacao <- glmmTMB(as.formula(get_best_model(ci_models_com_interacoes)$formula_str),
+                             data = tc_train,
+                             family = binomial,
+                             REML = T)
+
+cim_com_interacao_2 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                                  'contract:offer + offer:payment_method')
+
+cim_com_interacao_3 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                                  'contract:offer + offer:payment_method + contract:payment_method')
+
+cim_com_interacao_4 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                                  'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc')
+
+cim_com_interacao_5 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                                  'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc + tenure_in_months_gmc:number_of_dependents_gmc')
+
+lrtest(cim_com_interacao, cim_com_interacao_2$modelo)
+lrtest(cim_com_interacao_2$modelo, cim_com_interacao_3$modelo)
+lrtest(cim_com_interacao_3$modelo, cim_com_interacao_4$modelo)
+lrtest(cim_com_interacao_4$modelo, cim_com_interacao_5$modelo)
+
+lrtest(cim_com_interacao$modelo, test)
 lrtest(cim, cim_com_interacao)
 
 
@@ -207,27 +266,35 @@ ai_models <- dep_vars_to_test %>%
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
-
-ai_models_com_interacoes <- dep_vars_to_test %>% 
-    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)'), 'contract:tenure_in_months_gmc')) %>% 
-    map_dfr(~ .x$statistics) %>% 
-    arrange(desc(log_lik))
-
-aim <- glmmTMB(flg_churn ~
-                   contract + tenure_in_months_gmc + number_of_referrals_gmc + offer + internet_service 
-               + number_of_dependents_gmc + total_long_distance_charges_gmc + payment_method + total_revenue_gmc + monthly_charge_gmc
-               + paperless_billing + total_charges_gmc + unlimited_data + online_security + premium_tech_support 
-               + married + cltv_gmc + age_gmc + online_backup + streaming_tv
-               + device_protection_plan + avg_monthly_gb_download_gmc + zip_code_population_gmc
-               + (1 + number_of_dependents_gmc || zip_code),
+aim <- glmmTMB(as.formula(get_best_model(ai_models)$formula_str),
                data = tc_train,
                family = binomial,
                REML = T)
 
-lrtest(cim, aim)
+lrtest(cim_com_interacao, aim)
 
 
-final_models <- train_glmm(paste(dep_vars_to_test, collapse = ' + '),
-                           '(1 + number_of_dependents_gmc || zip_code)',
-                           interacoes_intra_nivel = '',
-                           interacoes_entre_niveis = 'zip_code_population_gmc:number_of_dependents_gmc')
+ai_models_com_interacoes <- dep_vars_to_test %>% 
+    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+                     glue('(1 + {.x} || zip_code)'),
+                     'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc')) %>% 
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
+
+# saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
+
+aim_com_interacao <- glmmTMB(as.formula(get_best_model(ai_models_com_interacoes)$formula_str),
+                             data = tc_train,
+                             family = binomial,
+                             REML = T)
+
+lrtest(aim, aim_com_interacao)
+lrtest(cim_com_interacao, aim_com_interacao)
+
+
+final_models <- interacoes_n1$interacao %>% 
+    map(~ train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
+                     get_best_model(ai_models_com_interacoes)$efeitos_aleatorios,
+                     interacoes_intra_nivel = .x,
+                     interacoes_entre_niveis = 'zip_code_population_gmc:number_of_dependents_gmc'))
+
