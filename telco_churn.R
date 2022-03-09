@@ -51,19 +51,23 @@ graficos <- tmp$Tables %>%
     map(~ mutate(.x, nome_var = names(.x)[1])) %>% 
     map(~ rename(.x, grupo = 1)) %>% 
     reduce(rbind) %>% 
-    mutate(grupo = as_factor(grupo)) %>% 
     group_by(nome_var) %>% 
     mutate(max_iv = max(IV),
-           n_item = row_number()) %>% 
+           n_item = row_number(),
+           inicio_intervalo = str_extract(grupo, '[0-9.]+'),
+           fim_intervalo = str_extract(grupo, '(?<=,)[0-9.]+'),
+           across(matches('_intervalo'), as.numeric)) %>%
     ungroup() %>% 
-    arrange(desc(max_iv)) %>% 
+    arrange(inicio_intervalo, fim_intervalo) %>% 
+    mutate(grupo = as_factor(grupo)) %>%
+    arrange(desc(max_iv), n_item) %>% 
     select(-max_iv) %>% 
     mutate(n_grupo = cumsum(n_item == 1),
            tmp = ifelse(n_grupo %% 12 == 0, 1, 0),
            xpto = cumsum(coalesce(ifelse(tmp == 0 & lag(tmp) == 1, 1, 0), 0))) %>% 
     group_split(xpto) %>% 
     map(~ ggplot(.x, aes(WOE, grupo)) + 
-            geom_col() +
+            geom_col(fill = '#fbc9a0', color = '#fbc9a0') +
             facet_wrap(~ nome_var, scales = 'free_y') +
             theme_light() +
             labs(y = NULL))
@@ -136,7 +140,7 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
             )
         },
         finally={
-            message(paste(Sys.time(), formula_str, sep = ' - '))
+            message(paste(Sys.time(), '   ', formula_str, '\n'))
         }
     )
     return(out)
@@ -165,6 +169,8 @@ icc(m0)
 
 paste(dep_vars$efeitos_fixos, collapse = ' + ')
 
+# Nas interacoes, foi detectado que a variavel 'internet_type', ao ser incluida com as demais,
+# gera problemas na convergencia do modelo.
 dep_vars_to_test <- dep_vars %>% 
     filter(is.na(coalesce(warning, error))) %>% 
     filter(!efeitos_fixos %in% c('zip_code', 'internet_type'))
@@ -283,10 +289,19 @@ ai_models_com_interacoes <- dep_vars_to_test %>%
 
 # saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
 
-aim_com_interacao <- glmmTMB(as.formula(get_best_model(ai_models_com_interacoes)$formula_str),
-                             data = tc_train,
-                             family = binomial,
-                             REML = T)
+aim_com_interacao <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
+                                '(1 + avg_monthly_gb_download_gmc || zip_code)',
+                                get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
+
+# aim_com_interacao_2 <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
+#                                   '(1 + avg_monthly_gb_download_gmc || zip_code) + (1 + total_revenue_gmc || zip_code)',
+#                                   get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
+
+aim_com_interacao_2 <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
+                                  '(1 + avg_monthly_gb_download_gmc + total_revenue_gmc || zip_code)',
+                                  get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
+
+lrtest(aim_com_interacao$modelo, aim_com_interacao_2$modelo)
 
 lrtest(aim, aim_com_interacao)
 lrtest(cim_com_interacao, aim_com_interacao)
