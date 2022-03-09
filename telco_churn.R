@@ -205,10 +205,13 @@ interacoes_n1 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc']
     mutate(interacao = glue('{V1}:{V2}'))
 
 
-ci_models_com_interacoes <- interacoes_n1$interacao %>%
-    map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos, '(1 | zip_code)', .x)) %>%
-    map_dfr(~ .x$statistics) %>% 
-    arrange(desc(log_lik))
+# ci_models_com_interacoes <- interacoes_n1$interacao %>%
+#     map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos, '(1 | zip_code)', .x)) %>%
+#     map_dfr(~ .x$statistics) %>% 
+#     arrange(desc(log_lik))
+
+ci_models_com_interacoes <- readRDS('r_objects/ci_models_com_interacoes.rds')
+# saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
 
 interacoes_to_plot <- ci_models_com_interacoes %>% 
     filter(is.na(coalesce(warning, error))) %>% 
@@ -216,15 +219,23 @@ interacoes_to_plot <- ci_models_com_interacoes %>%
     select(V1, V2, log_lik) %>% 
     arrange(V1, V2)
 
-ggplot(interacoes_to_plot, aes(V1, V2, fill = log_lik)) +
+tmp <- interacoes_to_plot %>% 
+    mutate(V3 = V1,
+           V1 = V2,
+           V2 = V3) %>% 
+    select(-V3) %>% 
+    rbind(interacoes_to_plot)
+
+ggplot(tmp, aes(V1, V2, fill = log_lik)) +
     geom_tile() +
     scale_fill_distiller(palette = 'YlOrRd', direction = 1) +
     theme_light() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-    labs(x = NULL, y = NULL)
+    labs(x = NULL, y = NULL,
+         title = 'Log-likelihood dos modelos treinados com as interações das variáveis de nível 1',
+         subtitle = 'Além das interações, os modelos incluem as mesmas variáveis do melhor modelo obtido na etapa anterior')
 
-
-# saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
+ggplotly()
 
 # test <- train_glmm(paste(dep_vars_to_test, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
 # test <- train_glmm(glue(" ( { paste(dep_vars_to_test, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
@@ -242,29 +253,18 @@ cim_com_interacao <- glmmTMB(as.formula(get_best_model(ci_models_com_interacoes)
                              family = binomial,
                              REML = T)
 
-cim_com_interacao_2 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
-                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
-                                  'contract:offer + offer:payment_method')
+cim_com_interacao_2 <- 2:10 %>%
+    map(~ paste(ci_models_com_interacoes$interacoes_intra_nivel[1:.x], collapse = ' + ')) %>% 
+    map(~ train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                     get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                     .x))
 
-cim_com_interacao_3 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
-                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
-                                  'contract:offer + offer:payment_method + contract:payment_method')
-
-cim_com_interacao_4 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
-                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
-                                  'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc')
-
-cim_com_interacao_5 <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
-                                  get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
-                                  'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc + tenure_in_months_gmc:number_of_dependents_gmc')
-
-lrtest(cim_com_interacao, cim_com_interacao_2$modelo)
-lrtest(cim_com_interacao_2$modelo, cim_com_interacao_3$modelo)
-lrtest(cim_com_interacao_3$modelo, cim_com_interacao_4$modelo)
-lrtest(cim_com_interacao_4$modelo, cim_com_interacao_5$modelo)
-
-lrtest(cim_com_interacao$modelo, test)
-lrtest(cim, cim_com_interacao)
+# Identificou-se que incluir as cinco interacoes de nivel 1, que separadamente 
+# geram os modelos com os menores log-liks, resultam em um modelo com melhor
+# capacidade preditiva
+2:length(cim_com_interacao_2) %>% 
+    map(~ lrtest(cim_com_interacao_2[[.x-1]][['modelo']],
+                 cim_com_interacao_2[[.x]][['modelo']]))
 
 
 ai_models <- dep_vars_to_test %>% 
@@ -283,11 +283,12 @@ lrtest(cim_com_interacao, aim)
 ai_models_com_interacoes <- dep_vars_to_test %>% 
     map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '),
                      glue('(1 + {.x} || zip_code)'),
-                     'contract:offer + offer:payment_method + contract:payment_method + contract:age_gmc')) %>% 
+                     paste(ci_models_com_interacoes$interacoes_intra_nivel[1:5], collapse = ' + '))) %>% 
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
-# saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
+# ai_models_com_interacoes <- readRDS('r_objects/ai_models_com_interacoes.rds')
+saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
 
 aim_com_interacao <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
                                 '(1 + avg_monthly_gb_download_gmc || zip_code)',
