@@ -84,15 +84,22 @@ tc_test <- tc[-train,]
 
 
 # Modelagem multinivel
-train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
+train_glmm <- function(efeitos_fixos = NA, efeitos_aleatorios = NA,
                        interacoes_intra_nivel = NA,
-                       interacoes_entre_niveis = NA) {
+                       interacoes_entre_niveis = NA,
+                       time_unit = 'secs') {
     out <- tryCatch(
         {
-            formula_str <- glue('flg_churn ~ {efeitos_fixos} + {efeitos_aleatorios}')
+            params <- c(efeitos_fixos, efeitos_aleatorios, interacoes_intra_nivel, interacoes_entre_niveis)
+            params <- paste0(params[!is.na(params)], collapse = ' + ')
+            formula_str <- glue('flg_churn ~ {params}')
             
-            if(!is.na(interacoes_intra_nivel)) formula_str <- glue('{formula_str} + {interacoes_intra_nivel}')
-            if(!is.na(interacoes_entre_niveis)) formula_str <- glue('{formula_str} + {interacoes_entre_niveis}')
+            statistics <- tibble(efeitos_fixos = efeitos_fixos,
+                                 efeitos_aleatorios = efeitos_aleatorios,
+                                 interacoes_intra_nivel = interacoes_intra_nivel,
+                                 interacoes_entre_niveis = interacoes_entre_niveis,
+                                 formula_str = formula_str,
+                                 start_time = Sys.time())
             
             modelo <- glmmTMB(as.formula(formula_str),
                              data = tc_train,
@@ -100,11 +107,9 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
                              REML = T)
             
             list(modelo = modelo,
-                 statistics = tibble(efeitos_fixos = efeitos_fixos,
-                                     efeitos_aleatorios = efeitos_aleatorios,
-                                     interacoes_intra_nivel = interacoes_intra_nivel,
-                                     interacoes_entre_niveis = interacoes_entre_niveis,
-                                     formula_str = formula_str,
+                 statistics = mutate(statistics,
+                                     end_time = Sys.time(),
+                                     training_time = difftime(end_time, start_time, units = time_unit),
                                      log_lik = as.numeric(logLik(modelo)),
                                      aic = AIC(modelo),
                                      error = NA,
@@ -114,11 +119,9 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
         error=function(cond) {
             message("message:", cond)
             list(modelo = NA,
-                 statistics = tibble(efeitos_fixos = efeitos_fixos,
-                                     efeitos_aleatorios = efeitos_aleatorios,
-                                     interacoes_intra_nivel = interacoes_intra_nivel,
-                                     interacoes_entre_niveis = interacoes_entre_niveis,
-                                     formula_str = formula_str,
+                 statistics = mutate(statistics,
+                                     end_time = Sys.time(),
+                                     training_time = difftime(end_time, start_time, units = time_unit),
                                      log_lik = NA,
                                      aic = NA,
                                      error = as.character(cond),
@@ -128,11 +131,9 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
         warning=function(cond) {
             message("message:", cond)
             list(modelo = NA,
-                 statistics = tibble(efeitos_fixos = efeitos_fixos,
-                                     efeitos_aleatorios = efeitos_aleatorios,
-                                     interacoes_intra_nivel = interacoes_intra_nivel,
-                                     interacoes_entre_niveis = interacoes_entre_niveis,
-                                     formula_str = formula_str,
+                 statistics = mutate(statistics,
+                                     end_time = Sys.time(),
+                                     training_time = difftime(end_time, start_time, units = time_unit),
                                      log_lik = NA,
                                      aic = NA,
                                      error = NA,
@@ -147,27 +148,37 @@ train_glmm <- function(efeitos_fixos, efeitos_aleatorios,
 }
 
 
+get_models_time_stats <- function(models) {
+    # Tempo medio pra treinar cada modelo
+    # Tempo total, necessario para treinar todos os modelos, inclusive os que nao convergiram
+    
+    time_stats <- summarise(models,
+                            tempo_medio_treino = mean(training_time),
+                            tempo_total_treino = max(end_time) - min(start_time))
+    
+    return(time_stats)
+}
+
 dep_vars <- tc_train %>%
     select(matches('_gmc') | !where(is.numeric)) %>%
-    select(!matches(paste(discarded_dep_vars$Variable, collapse = '|'))) %>% 
-    select(-c(flg_churn, zip_code)) %>% 
-    colnames() %>% 
-    map(~ train_glmm(.x, '(1 | zip_code)')) %>% 
-    map_dfr(~ .x$statistics) %>% 
+    select(!matches(paste(discarded_dep_vars$Variable, collapse = '|'))) %>%
+    select(-c(flg_churn, zip_code)) %>%
+    colnames() %>%
+    map(~ train_glmm(.x, '(1 | zip_code)')) %>%
+    map_dfr(~ .x$statistics) %>%
     arrange(desc(log_lik))
 
+dep_vars <- readRDS('r_objects/dep_vars.rds')
+# saveRDS(dep_vars, 'r_objects/dep_vars.rds')
+
+get_models_time_stats(dep_vars)
 
 filter(dep_vars, !is.na(coalesce(warning, error)))
 
 # Passo 1: Construindo modelo vazio
-m0 <- glmmTMB(flg_churn ~ (1 | zip_code),
-              data = tc_train,
-              family = binomial,
-              REML = T)
+m0 <- train_glmm(efeitos_aleatorios = '(1 | zip_code)')
 
-icc(m0)
-
-paste(dep_vars$efeitos_fixos, collapse = ' + ')
+icc(m0$modelo)
 
 # Nas interacoes, foi detectado que a variavel 'internet_type', ao ser incluida com as demais,
 # gera problemas na convergencia do modelo.
@@ -181,22 +192,28 @@ dep_vars_to_test <- dep_vars %>%
 # Doses homeopaticas.
 # A cada interacao insere uma nova variavel dependente no modelo,
 # De modo a descobrir variaveis que geram problema na convergencia.
-ci_models <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
-    map(~ train_glmm(.x, '(1 | zip_code)')) %>% 
-    map_dfr(~ .x$statistics) %>% 
-    arrange(desc(log_lik))
+# ci_models <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
+#     map(~ train_glmm(.x, '(1 | zip_code)')) %>% 
+#     map_dfr(~ .x$statistics) %>% 
+#     arrange(desc(log_lik))
 
-# get_best_model(ci_models) %>% 
+ci_models <- readRDS('r_objects/ci_models.rds')
+# saveRDS(ci_models, 'r_objects/ci_models.rds')
+
+get_models_time_stats(ci_models)
+
+# Algumas vezes, o modelo com maior loglik, nao eh o modelo com o menor AIC
+# get_best_model(ci_models) %>%
 #     rbind(get_best_model(ci_models, F)) %>% 
 #     View()
 
-cim <- glmmTMB(as.formula(get_best_model(ci_models)$formula_str),
-               data = tc_train,
-               family = binomial,
-               REML = T)
+# Identifica o melhor modelo, pelo criterio do loglik
+cim <- train_glmm(get_best_model(ci_models)$efeitos_fixos,
+                  get_best_model(ci_models)$efeitos_aleatorios)
 
-lrtest(m0, cim)
-
+# Testa se a inclusao dos efeitos fixos
+# melhora o poder preditivo do modelo nulo
+lrtest(m0$modelo, cim$modelo)
 
 interacoes_n1 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc'] %>% 
     combn(2) %>% 
@@ -205,13 +222,15 @@ interacoes_n1 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc']
     mutate(interacao = glue('{V1}:{V2}'))
 
 
-# ci_models_com_interacoes <- interacoes_n1$interacao %>%
-#     map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos, '(1 | zip_code)', .x)) %>%
-#     map_dfr(~ .x$statistics) %>% 
-#     arrange(desc(log_lik))
+ci_models_com_interacoes <- interacoes_n1$interacao %>%
+    map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos,
+                     get_best_model(ci_models)$efeitos_aleatorios,
+                     .x)) %>%
+    map_dfr(~ .x$statistics) %>%
+    arrange(desc(log_lik))
 
-ci_models_com_interacoes <- readRDS('r_objects/ci_models_com_interacoes.rds')
-# saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
+# ci_models_com_interacoes <- readRDS('r_objects/ci_models_com_interacoes.rds')
+saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
 
 interacoes_to_plot <- ci_models_com_interacoes %>% 
     filter(is.na(coalesce(warning, error))) %>% 
@@ -244,15 +263,16 @@ ggplotly()
 #     rbind(get_best_model(ci_models, F)) %>%
 #     View()
 
-# cim_com_interacao <- train_glmm(paste(dep_vars_to_test, collapse = ' + '),
-#                                 '(1 | zip_code)',
-#                                 'contract:offer')
+cim_com_interacao <- train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
+                                get_best_model(ci_models_com_interacoes)$efeitos_aleatorios,
+                                get_best_model(ci_models_com_interacoes)$interacoes_intra_nivel)
 
-cim_com_interacao <- glmmTMB(as.formula(get_best_model(ci_models_com_interacoes)$formula_str),
-                             data = tc_train,
-                             family = binomial,
-                             REML = T)
+# Testa se a inclusao das interacoes de nivel 1
+# aumentam o poder preditivo do modelo
+lrtest(cim$modelo, cim_com_interacao$modelo)
 
+# Doses homeopaticas.
+# Inclue de forma incremental, uma interacao de nivel 1 por vez
 cim_com_interacao_2 <- 2:10 %>%
     map(~ paste(ci_models_com_interacoes$interacoes_intra_nivel[1:.x], collapse = ' + ')) %>% 
     map(~ train_glmm(get_best_model(ci_models_com_interacoes)$efeitos_fixos,
@@ -260,22 +280,25 @@ cim_com_interacao_2 <- 2:10 %>%
                      .x))
 
 # Identificou-se que incluir as cinco interacoes de nivel 1, que separadamente 
-# geram os modelos com os menores log-liks, resultam em um modelo com melhor
+# geram os modelos com os maiores log-liks, resultam em um modelo com melhor
 # capacidade preditiva
 2:length(cim_com_interacao_2) %>% 
     map(~ lrtest(cim_com_interacao_2[[.x-1]][['modelo']],
                  cim_com_interacao_2[[.x]][['modelo']]))
 
+# Teste se se a inclusao de novas interacoes
+# aumenta o poder preditivo do modelo
+lrtest(cim_com_interacao$modelo, cim_com_interacao_2$modelo)
 
 ai_models <- dep_vars_to_test %>% 
     map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)'))) %>% 
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
-aim <- glmmTMB(as.formula(get_best_model(ai_models)$formula_str),
-               data = tc_train,
-               family = binomial,
-               REML = T)
+aim <- train_glmm(get_best_model(ai_models)$efeitos_fixos,
+                  get_best_model(ai_models)$efeitos_aleatorios,
+                  get_best_model(ai_models)$interacoes_intra_nivel,
+                  get_best_model(ai_models)$interacoes_entre_niveis)
 
 lrtest(cim_com_interacao, aim)
 
