@@ -287,30 +287,36 @@ ai_models_com_interacoes <- dep_vars_to_test %>%
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
-# ai_models_com_interacoes <- readRDS('r_objects/ai_models_com_interacoes.rds')
-saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
+ai_models_com_interacoes <- readRDS('r_objects/ai_models_com_interacoes.rds')
+# saveRDS(ai_models_com_interacoes, 'r_objects/ai_models_com_interacoes.rds')
 
 aim_com_interacao <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
-                                '(1 + avg_monthly_gb_download_gmc || zip_code)',
+                                get_best_model(ai_models_com_interacoes)$efeitos_aleatorios,
                                 get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
 
-# aim_com_interacao_2 <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
-#                                   '(1 + avg_monthly_gb_download_gmc || zip_code) + (1 + total_revenue_gmc || zip_code)',
-#                                   get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
-
-aim_com_interacao_2 <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
-                                  '(1 + avg_monthly_gb_download_gmc + total_revenue_gmc || zip_code)',
-                                  get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel)
-
-lrtest(aim_com_interacao$modelo, aim_com_interacao_2$modelo)
-
-lrtest(aim, aim_com_interacao)
-lrtest(cim_com_interacao, aim_com_interacao)
+# lrtest(aim, aim_com_interacao)
+lrtest(cim_com_interacao, aim_com_interacao$modelo)
 
 
-final_models <- interacoes_n1$interacao %>% 
+interacoes_n1_com_n2 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc'] %>% 
+    map_chr(~ glue('zip_code_population_gmc:{.x}'))
+
+final_models <- interacoes_n1_com_n2 %>% 
     map(~ train_glmm(get_best_model(ai_models_com_interacoes)$efeitos_fixos,
                      get_best_model(ai_models_com_interacoes)$efeitos_aleatorios,
-                     interacoes_intra_nivel = .x,
-                     interacoes_entre_niveis = 'zip_code_population_gmc:number_of_dependents_gmc'))
+                     get_best_model(ai_models_com_interacoes)$interacoes_intra_nivel,
+                     .x)) %>% 
+    map_dfr(~ .x$statistics) %>% 
+    arrange(desc(log_lik))
 
+# saveRDS(final_models, 'r_objects/final_models.rds')
+final_models <- readRDS('r_objects/final_models.rds')
+
+final_models_2 <- 2:5 %>%
+    map(~ paste(final_models$interacoes_entre_niveis[1:.x], collapse = ' + ')) %>% 
+    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+                     get_best_model(final_models)$efeitos_aleatorios,
+                     get_best_model(final_models)$interacoes_intra_nivel,
+                     .x))
+
+# saveRDS(final_models_2, 'r_objects/final_models_2.rds')
