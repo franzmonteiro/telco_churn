@@ -1,15 +1,13 @@
 library(tidyverse)
 library(stringr)
 library(glue)
-library(lubridate)
 library(readxl)
 library(caret)
 library(glmmTMB)
 library(lmtest)
 library(Information)
 library(performance)
-library(plotly)
-
+library(GGally)
 
 get_best_model <- function(models, log_lik_criterion = T) {
     if(log_lik_criterion) {
@@ -28,7 +26,8 @@ tc <- list.files('csvs/', pattern = '*.xlsx', full.names = T) %>%
     reduce(left_join) %>% 
     select(-c(id, latitude, longitude, lat_long,
               churn_label,
-              customer_id, customer_status, churn_score, churn_category, churn_reason,
+              customer_id,
+              customer_status, churn_score, churn_category, churn_reason,
               quarter, state, country,
               under_30, senior_citizen, dependents, referred_a_friend)) %>% 
     rename(flg_churn = churn_value,
@@ -38,6 +37,13 @@ tc <- list.files('csvs/', pattern = '*.xlsx', full.names = T) %>%
            across(where(is.numeric), ~ .x - mean(.x), .names = '{.col}_gmc')) %>% 
     select(-flg_churn_gmc)
 
+
+estatisticas_descritivas <- tc %>% 
+    group_by(zip_code) %>% 
+    summarise(qtd_clientes = n(),
+              taxa_churn = sum(flg_churn) / n())
+
+summary(estatisticas_descritivas$qtd_clientes)
 
 tmp <- create_infotables(data = select(tc, -matches('_gmc')), y = 'flg_churn')
 
@@ -75,6 +81,36 @@ graficos <- tmp$Tables %>%
 graficos[[1]]
 graficos[[2]]
 graficos[[3]]
+
+
+ggcorr(select(tc, where(is.numeric) & -matches('_gmc')),
+               # legend.position = 'bottom',
+               # legend.size = 12,
+               # geom = "circle",
+               label = T,
+               label_round = 2,
+               label_size = 3,
+               label_alpha = T,
+               hjust = 1,
+               size = 3,
+               color = 'grey50',
+               layout.exp = 3)
+
+
+# Correlacao entre variaveis numericas
+corr_m <- tc %>%
+    select(where(is.numeric) & -matches('_gmc')) %>% 
+    cor()
+
+corr_m[upper.tri(corr_m, diag = T)] <- NA
+corr_m <- corr_m %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename(v1 = 1) %>% 
+    gather(v2, correlacao, -v1) %>% 
+    mutate(correlacao = round(correlacao, 2)) %>% 
+    filter(!is.na(correlacao)) %>% 
+    arrange(desc(abs(correlacao)))
 
 
 set.seed(1)
@@ -159,48 +195,67 @@ get_models_time_stats <- function(models) {
     return(time_stats)
 }
 
-dep_vars <- tc_train %>%
-    select(matches('_gmc') | !where(is.numeric)) %>%
-    select(!matches(paste(discarded_dep_vars$Variable, collapse = '|'))) %>%
-    select(-c(flg_churn, zip_code)) %>%
-    colnames() %>%
-    map(~ train_glmm(.x, '(1 | zip_code)')) %>%
-    map_dfr(~ .x$statistics) %>%
-    arrange(desc(log_lik))
+# Treina diversos modelos, um para cada variavel dependente
+# e verifica quais convergem
+# dep_vars <- tc_train %>%
+#     select(matches('_gmc') | !where(is.numeric)) %>%
+#     select(!matches(paste(discarded_dep_vars$Variable, collapse = '|'))) %>%
+#     select(-c(flg_churn, zip_code)) %>%
+#     colnames() %>%
+#     map(~ train_glmm(.x, '(1 | zip_code)')) %>%
+#     map_dfr(~ .x$statistics) %>%
+#     arrange(desc(log_lik))
 
 dep_vars <- readRDS('r_objects/dep_vars.rds')
 # saveRDS(dep_vars, 'r_objects/dep_vars.rds')
 
 get_models_time_stats(dep_vars)
 
-filter(dep_vars, !is.na(coalesce(warning, error)))
+# filter(dep_vars, !is.na(coalesce(warning, error)))
 
 # Passo 1: Construindo modelo vazio
 m0 <- train_glmm(efeitos_aleatorios = '(1 | zip_code)')
 
 icc(m0$modelo)
+get_models_time_stats(m0$statistics)
 
-# Nas interacoes, foi detectado que a variavel 'internet_type', ao ser incluida com as demais,
-# gera problemas na convergencia do modelo.
-dep_vars_to_test <- dep_vars %>% 
-    filter(is.na(coalesce(warning, error))) %>% 
-    filter(!efeitos_fixos %in% c('zip_code', 'internet_type'))
+# Nas interacoes, foi detectado que as variaveis 'internet_service' e 'internet_type',
+# ao serem incluidas juntas no modelo, com as demais variaveis,
+# geram problemas na convergencia.
+# Deste modo, a variavel 'internet_type' foi escolhida para ser mantida, uma
+# vez que aumenta a capacidade preditiva do modelo, comparada a 'internet_service'
+dep_vars %>%
+    filter(efeitos_fixos %in% c('internet_type', 'internet_service')) %>% 
+    arrange(desc(log_lik)) %>% 
+    select(efeitos_fixos, log_lik, aic)
 
-(dep_vars_to_test <- dep_vars_to_test$efeitos_fixos)
+principal_dep_vars <- dep_vars %>% 
+    filter(is.na(coalesce(warning, error))) %>%
+    filter(!efeitos_fixos %in% c('internet_service'))
 
+other_dep_vars <- dep_vars %>% 
+    filter(!is.na(coalesce(warning, error))
+           | efeitos_fixos == 'internet_service')
+
+# Organiza o vetor de variaveis dependentes,
+# de modo que as variaveis problematicas,
+# sejam as ultimas a serem incluidas no modelo,
+# a fim de varificar se continuam impossibilitando a convergencia
+dep_vars <- c(principal_dep_vars$efeitos_fixos, other_dep_vars$efeitos_fixos)
 
 # Doses homeopaticas.
 # A cada interacao insere uma nova variavel dependente no modelo,
 # De modo a descobrir variaveis que geram problema na convergencia.
-# ci_models <- map(1:length(dep_vars_to_test), ~ paste(dep_vars_to_test[1:.x], collapse = ' + ')) %>%
-#     map(~ train_glmm(.x, '(1 | zip_code)')) %>% 
-#     map_dfr(~ .x$statistics) %>% 
+# ci_models <- map(1:length(dep_vars), ~ paste(dep_vars[1:.x], collapse = ' + ')) %>%
+#     map(~ train_glmm(.x, '(1 | zip_code)')) %>%
+#     map_dfr(~ .x$statistics) %>%
 #     arrange(desc(log_lik))
 
 ci_models <- readRDS('r_objects/ci_models.rds')
 # saveRDS(ci_models, 'r_objects/ci_models.rds')
 
 get_models_time_stats(ci_models)
+
 
 # Algumas vezes, o modelo com maior loglik, nao eh o modelo com o menor AIC
 # get_best_model(ci_models) %>%
@@ -211,26 +266,36 @@ get_models_time_stats(ci_models)
 cim <- train_glmm(get_best_model(ci_models)$efeitos_fixos,
                   get_best_model(ci_models)$efeitos_aleatorios)
 
+summary(cim$modelo)
+
 # Testa se a inclusao dos efeitos fixos
 # melhora o poder preditivo do modelo nulo
 lrtest(m0$modelo, cim$modelo)
 
-interacoes_n1 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc'] %>% 
+# 'zip_code_population_gmc' eh uma variavel de nivel dois.
+# Nao fez-se interacoes das variaveis 'other_dep_vars' com as demais,
+# uma vez que estas variaveis base nao serao inclusas no modelo,
+# por impossibilitarem a convergencia
+interacoes_n1 <- dep_vars[!dep_vars %in% c('zip_code_population_gmc', other_dep_vars$efeitos_fixos)] %>% 
     combn(2) %>% 
     t() %>% 
     as.data.frame() %>% 
     mutate(interacao = glue('{V1}:{V2}'))
 
-
+# Ao incluir as interacoes, deve-se manter as variaveis de nivel 1 base,
+# que interagem com outras.
+# Por isso, aqui manteve-se todas as variaveis dependentes principais nos efeitos fixos.
 ci_models_com_interacoes <- interacoes_n1$interacao %>%
-    map(~ train_glmm(get_best_model(ci_models)$efeitos_fixos,
-                     get_best_model(ci_models)$efeitos_aleatorios,
+    map(~ train_glmm(paste(principal_dep_vars$efeitos_fixos, collapse = ' + '),
+                     '(1 | zip_code)',
                      .x)) %>%
     map_dfr(~ .x$statistics) %>%
     arrange(desc(log_lik))
 
-# ci_models_com_interacoes <- readRDS('r_objects/ci_models_com_interacoes.rds')
-saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
+ci_models_com_interacoes <- readRDS('r_objects/ci_models_com_interacoes.rds')
+# saveRDS(ci_models_com_interacoes, 'r_objects/ci_models_com_interacoes.rds')
+
+get_models_time_stats(ci_models_com_interacoes)
 
 interacoes_to_plot <- ci_models_com_interacoes %>% 
     filter(is.na(coalesce(warning, error))) %>% 
@@ -256,8 +321,8 @@ ggplot(tmp, aes(V1, V2, fill = log_lik)) +
 
 ggplotly()
 
-# test <- train_glmm(paste(dep_vars_to_test, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
-# test <- train_glmm(glue(" ( { paste(dep_vars_to_test, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
+# test <- train_glmm(paste(dep_vars, collapse = ' + '), '(1 | zip_code)', 'contract:tenure_in_months_gmc')
+# test <- train_glmm(glue(" ( { paste(dep_vars, collapse = ' + ') } ) ^ 2" ), '(1 | zip_code)')
 
 # get_best_model(ci_models) %>%
 #     rbind(get_best_model(ci_models, F)) %>%
@@ -290,8 +355,8 @@ cim_com_interacao_2 <- 2:10 %>%
 # aumenta o poder preditivo do modelo
 lrtest(cim_com_interacao$modelo, cim_com_interacao_2$modelo)
 
-ai_models <- dep_vars_to_test %>% 
-    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '), glue('(1 + {.x} || zip_code)'))) %>% 
+ai_models <- dep_vars %>% 
+    map(~ train_glmm(paste(dep_vars, collapse = ' + '), glue('(1 + {.x} || zip_code)'))) %>% 
     map_dfr(~ .x$statistics) %>% 
     arrange(desc(log_lik))
 
@@ -303,8 +368,8 @@ aim <- train_glmm(get_best_model(ai_models)$efeitos_fixos,
 lrtest(cim_com_interacao, aim)
 
 
-ai_models_com_interacoes <- dep_vars_to_test %>% 
-    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+ai_models_com_interacoes <- dep_vars %>% 
+    map(~ train_glmm(paste(dep_vars, collapse = ' + '),
                      glue('(1 + {.x} || zip_code)'),
                      paste(ci_models_com_interacoes$interacoes_intra_nivel[1:5], collapse = ' + '))) %>% 
     map_dfr(~ .x$statistics) %>% 
@@ -321,7 +386,7 @@ aim_com_interacao <- train_glmm(get_best_model(ai_models_com_interacoes)$efeitos
 lrtest(cim_com_interacao, aim_com_interacao$modelo)
 
 
-interacoes_n1_com_n2 <- dep_vars_to_test[dep_vars_to_test != 'zip_code_population_gmc'] %>% 
+interacoes_n1_com_n2 <- dep_vars[dep_vars != 'zip_code_population_gmc'] %>% 
     map_chr(~ glue('zip_code_population_gmc:{.x}'))
 
 final_models <- interacoes_n1_com_n2 %>% 
@@ -337,7 +402,7 @@ final_models <- readRDS('r_objects/final_models.rds')
 
 final_models_2 <- 2:5 %>%
     map(~ paste(final_models$interacoes_entre_niveis[1:.x], collapse = ' + ')) %>% 
-    map(~ train_glmm(paste(dep_vars_to_test, collapse = ' + '),
+    map(~ train_glmm(paste(dep_vars, collapse = ' + '),
                      get_best_model(final_models)$efeitos_aleatorios,
                      get_best_model(final_models)$interacoes_intra_nivel,
                      .x))
