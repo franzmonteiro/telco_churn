@@ -1,0 +1,2 @@
+efeitos_fixos;efeitos_aleatorios;interacoes_intra_nivel;interacoes_entre_niveis;formula_str;start_time;end_time;training_time;time_unit;log_lik;aic;error;warning
+NA;(1 | zip_code);NA;NA;flg_churn ~ (1 | zip_code);2022-03-13T20:06:46Z;2022-03-13T20:06:48Z;2.20575189590454;secs;-2797.2332004821433;5598.466400964287;NA;NA

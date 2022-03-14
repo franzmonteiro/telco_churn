@@ -1,0 +1,29 @@
+efeitos_fixos;efeitos_aleatorios;interacoes_intra_nivel;interacoes_entre_niveis;formula_str;start_time;end_time;training_time;time_unit;log_lik;aic;error;warning
+age_gmc;(1 | zip_code);NA;NA;flg_churn ~ age_gmc + (1 | zip_code);2022-03-13T20:04:58Z;2022-03-13T20:05:05Z;6.38689517974854;secs;-2775.584132272566;5557.168264545132;NA;NA
+number_of_dependents_gmc;(1 | zip_code);NA;NA;flg_churn ~ number_of_dependents_gmc + (1 | zip_code);2022-03-13T20:05:05Z;2022-03-13T20:05:11Z;5.90788793563843;secs;-2649.7956749026075;5305.591349805215;NA;NA
+zip_code_population_gmc;(1 | zip_code);NA;NA;flg_churn ~ zip_code_population_gmc + (1 | zip_code);2022-03-13T20:05:12Z;2022-03-13T20:05:18Z;6.18066000938416;secs;-2809.100177249257;5624.200354498514;NA;NA
+number_of_referrals_gmc;(1 | zip_code);NA;NA;flg_churn ~ number_of_referrals_gmc + (1 | zip_code);2022-03-13T20:05:18Z;2022-03-13T20:05:24Z;6.37405490875244;secs;-2526.2215644801186;5058.443128960237;NA;NA
+tenure_in_months_gmc;(1 | zip_code);NA;NA;flg_churn ~ tenure_in_months_gmc + (1 | zip_code);2022-03-13T20:05:25Z;2022-03-13T20:05:31Z;6.45226192474365;secs;-2488.970963588433;4983.941927176866;NA;NA
+avg_monthly_gb_download_gmc;(1 | zip_code);NA;NA;flg_churn ~ avg_monthly_gb_download_gmc + (1 | zip_code);2022-03-13T20:05:31Z;2022-03-13T20:05:37Z;5.91903591156006;secs;-2795.108204185341;5596.216408370682;NA;NA
+monthly_charge_gmc;(1 | zip_code);NA;NA;flg_churn ~ monthly_charge_gmc + (1 | zip_code);2022-03-13T20:05:37Z;2022-03-13T20:05:46Z;8.18447208404541;secs;-2701.3594055423905;5408.718811084781;NA;NA
+total_charges_gmc;(1 | zip_code);NA;NA;flg_churn ~ total_charges_gmc + (1 | zip_code);2022-03-13T20:05:46Z;2022-03-13T20:05:52Z;6.2644739151001;secs;-2711.4816735441395;5428.963347088279;NA;NA
+total_long_distance_charges_gmc;(1 | zip_code);NA;NA;flg_churn ~ total_long_distance_charges_gmc + (1 | zip_code);2022-03-13T20:05:52Z;2022-03-13T20:05:59Z;6.89030504226685;secs;-2677.266464222965;5360.53292844593;NA;NA
+total_revenue_gmc;(1 | zip_code);NA;NA;flg_churn ~ total_revenue_gmc + (1 | zip_code);2022-03-13T20:05:59Z;2022-03-13T20:06:03Z;3.7201509475708;secs;-2685.4054771135557;5376.810954227111;NA;NA
+satisfaction_score_gmc;(1 | zip_code);NA;NA;flg_churn ~ satisfaction_score_gmc + (1 | zip_code);2022-03-13T20:06:03Z;2022-03-13T20:06:05Z;2.14033699035645;secs;NA;NA;NA;"simpleWarning in (function (start, objective, gradient = NULL, hessian = NULL, : NA/NaN function evaluation
+"
+cltv_gmc;(1 | zip_code);NA;NA;flg_churn ~ cltv_gmc + (1 | zip_code);2022-03-13T20:06:05Z;2022-03-13T20:06:08Z;2.65365695953369;secs;-2769.1798704884027;5544.359740976805;NA;NA
+married;(1 | zip_code);NA;NA;flg_churn ~ married + (1 | zip_code);2022-03-13T20:06:08Z;2022-03-13T20:06:11Z;2.52278804779053;secs;-2741.42360734924;5488.84721469848;NA;NA
+city;(1 | zip_code);NA;NA;flg_churn ~ city + (1 | zip_code);2022-03-13T20:06:11Z;2022-03-13T20:06:14Z;3.27287602424622;secs;NA;NA;NA;"simpleWarning in (function (start, objective, gradient = NULL, hessian = NULL, : NA/NaN function evaluation
+"
+offer;(1 | zip_code);NA;NA;flg_churn ~ offer + (1 | zip_code);2022-03-13T20:06:14Z;2022-03-13T20:06:17Z;2.63398694992065;secs;-2639.8486203978123;5293.697240795625;NA;NA
+internet_service;(1 | zip_code);NA;NA;flg_churn ~ internet_service + (1 | zip_code);2022-03-13T20:06:17Z;2022-03-13T20:06:19Z;2.67937302589417;secs;-2641.0667871338132;5288.1335742676265;NA;NA
+internet_type;(1 | zip_code);NA;NA;flg_churn ~ internet_type + (1 | zip_code);2022-03-13T20:06:20Z;2022-03-13T20:06:22Z;2.73985004425049;secs;-2546.9257518200416;5103.851503640083;NA;NA
+online_security;(1 | zip_code);NA;NA;flg_churn ~ online_security + (1 | zip_code);2022-03-13T20:06:22Z;2022-03-13T20:06:25Z;2.33788800239563;secs;-2730.592373820428;5467.184747640856;NA;NA
+online_backup;(1 | zip_code);NA;NA;flg_churn ~ online_backup + (1 | zip_code);2022-03-13T20:06:25Z;2022-03-13T20:06:27Z;2.41860795021057;secs;-2781.477995742702;5568.955991485404;NA;NA
+device_protection_plan;(1 | zip_code);NA;NA;flg_churn ~ device_protection_plan + (1 | zip_code);2022-03-13T20:06:27Z;2022-03-13T20:06:30Z;2.49486303329468;secs;-2787.7521218222096;5581.504243644419;NA;NA
+premium_tech_support;(1 | zip_code);NA;NA;flg_churn ~ premium_tech_support + (1 | zip_code);2022-03-13T20:06:30Z;2022-03-13T20:06:32Z;2.47943687438965;secs;-2734.222382486903;5474.444764973806;NA;NA
+streaming_tv;(1 | zip_code);NA;NA;flg_churn ~ streaming_tv + (1 | zip_code);2022-03-13T20:06:33Z;2022-03-13T20:06:35Z;2.56022882461548;secs;-2785.440110328989;5576.880220657978;NA;NA
+unlimited_data;(1 | zip_code);NA;NA;flg_churn ~ unlimited_data + (1 | zip_code);2022-03-13T20:06:35Z;2022-03-13T20:06:38Z;2.55382609367371;secs;-2730.1521006086364;5466.304201217273;NA;NA
+contract;(1 | zip_code);NA;NA;flg_churn ~ contract + (1 | zip_code);2022-03-13T20:06:38Z;2022-03-13T20:06:41Z;2.7409360408783;secs;-2243.6094709461413;4495.218941892283;NA;NA
+paperless_billing;(1 | zip_code);NA;NA;flg_churn ~ paperless_billing + (1 | zip_code);2022-03-13T20:06:41Z;2022-03-13T20:06:43Z;2.66629314422607;secs;-2702.205611983543;5410.411223967086;NA;NA
+payment_method;(1 | zip_code);NA;NA;flg_churn ~ payment_method + (1 | zip_code);2022-03-13T20:06:44Z;2022-03-13T20:06:46Z;2.50622296333313;secs;-2682.31023583436;5372.62047166872;NA;NA
