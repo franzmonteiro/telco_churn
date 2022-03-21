@@ -8,6 +8,8 @@ library(lmtest)
 library(Information)
 library(performance)
 library(GGally)
+library(lubridate)
+
 
 CSVS_DIR <- 'csvs/models'
 R_OBJECTS_DIR <- 'r_objects/models'
@@ -70,7 +72,7 @@ train_glmm <- function(efeitos_fixos = NA, efeitos_aleatorios = NA,
             modelo <- glmmTMB(as.formula(formula_str),
                               data = tc_train,
                               family = binomial, 
-                              REML = T)
+                              REML = F)
             
             statistics <- mutate(statistics,
                                  end_time = Sys.time(),
@@ -132,9 +134,11 @@ tc <- list.files('csvs/', pattern = '*.xlsx', full.names = T) %>%
               under_30, senior_citizen, dependents, referred_a_friend)) %>% 
     rename(flg_churn = churn_value,
            zip_code_population = population) %>% 
-    mutate(across(all_of(c('zip_code')), as.factor),
+    mutate(across(all_of(c('zip_code', 'satisfaction_score')), as.factor),
            across(where(is.character), as.factor),
-           across(where(is.numeric), ~ .x - mean(.x), .names = '{.col}_gmc')) %>% 
+           across(where(is.numeric), ~ .x - mean(.x), .names = '{.col}_gmc')
+           # across(where(is.numeric), ~ (.x - mean(.x)) / sd(.x), .names = '{.col}_std')
+           ) %>% 
     select(-flg_churn_gmc)
 
 
@@ -183,7 +187,7 @@ graficos[[2]]
 graficos[[3]]
 
 
-ggcorr(select(tc, where(is.numeric) & -matches('_gmc')),
+ggcorr(select(tc, where(is.numeric) & -matches('_std')),
                # legend.position = 'bottom',
                # legend.size = 12,
                # geom = "circle",
@@ -199,7 +203,8 @@ ggcorr(select(tc, where(is.numeric) & -matches('_gmc')),
 
 # Correlacao entre variaveis numericas
 corr_m <- tc %>%
-    select(where(is.numeric) & -matches('_gmc')) %>% 
+    select(where(is.numeric) & -matches('_std')) %>%
+    # select(where(is.numeric) & -matches('_gmc')) %>% 
     cor()
 
 corr_m[upper.tri(corr_m, diag = T)] <- NA
@@ -218,10 +223,40 @@ train <- createDataPartition(tc$flg_churn, p = .7, list = F)
 tc_train <- tc[train,]
 tc_test <- tc[-train,]
 
+# Construindo variaveis
+tc_train <- tc_train %>% 
+    group_by(zip_code) %>% 
+    mutate(pct_zip_cliente_companhia = n() / zip_code_population) %>% 
+    ungroup() %>% 
+    mutate(v1 = total_refunds / total_charges,
+           # v2 = total_extra_data_charges / total_charges,
+           # v3 = total_long_distance_charges / total_charges,
+           # v4 = (total_extra_data_charges + total_long_distance_charges) / total_charges,
+           v5 = monthly_charge / total_charges
+           # v6 = total_charges / tenure_in_months,
+           )
+
+# Modelo logistico binario classico
+cm <- glm(flg_churn ~ . -city -total_revenue -internet_service + offer:contract + offer:multiple_lines
+          + zip_code + pct_zip_cliente_companhia,
+          # + tenure_in_months:satisfaction_score,# + avg_monthly_long_distance_charges:total_long_distance_charges, #+ avg_monthly_gb_download:unlimited_data,
+    family = 'binomial',
+    data = select(tc_train, -matches('_gmc')))
+
+summary(cm)
+logLik(cm)
+
+table(cut(tc_train$v5, seq(0,1,.1), include.lowest = T, right = T),
+      cut(tc_train$tenure_in_months, seq(1,72,12), include.lowest = T, right = T),
+      tc_train$flg_churn) %>% 
+    prop.table(1)
+
+# Modelagem multinivel
 # Treina diversos modelos, um para cada variavel dependente
 # e verifica quais convergem
 dep_vars <- tc_train %>%
-    select(matches('_gmc') | !where(is.numeric)) %>%
+    select(matches('_std') | !where(is.numeric)) %>%
+    # select(matches('_gmc') | !where(is.numeric)) %>%
     select(!matches(paste(discarded_dep_vars$Variable, collapse = '|'))) %>%
     select(-c(flg_churn, zip_code)) %>%
     colnames() %>%
@@ -229,11 +264,12 @@ dep_vars <- tc_train %>%
     map_dfr(~ .x$statistics) %>%
     arrange(desc(log_lik))
 
-# dep_vars <- read_delim(glue('{CSVS_DIR}/dep_vars.csv'), ';')
+dep_vars <- read_delim(glue('{CSVS_DIR}/dep_vars.csv'), ';') %>% 
+    mutate(across(all_of(c('start_time', 'end_time')), ~ .x - hours(3)))
 # dep_vars <- list.files(glue('{R_OBJECTS_DIR}/dep_vars/'), full.names = T) %>% 
 #     map(readRDS)
 
-get_models_time_stats(dep_vars)
+get_models_time_stats(dep_vars) / 60
 
 # filter(dep_vars, !is.na(coalesce(warning, error)))
 
@@ -257,15 +293,16 @@ principal_dep_vars <- dep_vars %>%
     filter(is.na(coalesce(warning, error))) %>%
     filter(!efeitos_fixos %in% c('internet_service'))
 
-other_dep_vars <- dep_vars %>% 
-    filter(!is.na(coalesce(warning, error))
-           | efeitos_fixos == 'internet_service')
+# other_dep_vars <- dep_vars %>% 
+#     filter(!is.na(coalesce(warning, error))
+#            | efeitos_fixos == 'internet_service')
 
 # Organiza o vetor de variaveis dependentes,
 # de modo que as variaveis problematicas,
 # sejam as ultimas a serem incluidas no modelo,
 # a fim de varificar se continuam impossibilitando a convergencia
-dep_vars <- c(principal_dep_vars$efeitos_fixos, other_dep_vars$efeitos_fixos)
+dep_vars <- principal_dep_vars$efeitos_fixos
+# dep_vars <- c(principal_dep_vars$efeitos_fixos, other_dep_vars$efeitos_fixos)
 
 # Doses homeopaticas.
 # A cada interacao insere uma nova variavel dependente no modelo,
@@ -276,19 +313,19 @@ cims <- map(1:length(dep_vars), ~ paste(dep_vars[1:.x], collapse = ' + ')) %>%
     arrange(desc(log_lik))
 
 # cims <- read_delim(glue('{CSVS_DIR}/cims.csv'), ';')
-get_models_time_stats(cims)
+get_models_time_stats(cims) / 60
 
 
 # Algumas vezes, o modelo com maior loglik, nao eh o modelo com o menor AIC
 # get_best_model(cims) %>%
-#     rbind(get_best_model(cims, F)) %>% 
+#     rbind(get_best_model(cims, F)) %>%
 #     View()
 
 # Identifica o melhor modelo, pelo criterio do loglik
-# cim <- train_glmm(get_best_model(cims)$efeitos_fixos,
-#                   get_best_model(cims)$efeitos_aleatorios)
+cim <- train_glmm(get_best_model(cims)$efeitos_fixos,
+                  get_best_model(cims)$efeitos_aleatorios)
 
-# summary(cim$modelo)
+summary(cim$modelo)
 
 # Testa se a inclusao dos efeitos fixos
 # melhora o poder preditivo do modelo nulo
@@ -318,7 +355,7 @@ cims_one_interaction <- level_one_interactions$interaction %>%
     map_dfr(~ .x$statistics) %>%
     arrange(desc(log_lik))
 
-# cims_one_interaction <- read_delim(glue('{CSVS_DIR}/cims_one_interaction.csv', ';')
+cims_one_interaction <- read_delim(glue('{CSVS_DIR}/cims_one_interaction.csv'), ';')
 get_models_time_stats(cims_one_interaction)
 
 interactions_to_plot <- cims_one_interaction %>% 
