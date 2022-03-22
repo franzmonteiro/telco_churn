@@ -1,0 +1,97 @@
+
+age: the customer’s current age, in years, at the time the fiscal quarter ended.
+
+avg monthly gb download: indicates the customer’s average download volume in gigabytes, calculated to the end of the quarter specified above.
+
+avg monthly long distance charges: indicates the customer’s average long distance charges, calculated to the end of the quarter specified above.
+
+churn category: a high-level category for the customer’s reason for churning: attitude, competitor, dissatisfaction, other, price. when they leave the company, all customers are asked about their reasons for leaving. directly related to churn reason.
+
+churn label: yes = the customer left the company this quarter. no = the customer remained with the company. directly related to churn value.
+
+churn reason: a customer’s specific reason for leaving the company. directly related to churn category.
+
+churn score category: a calculation that assigns a churn score to one of the following categories: 0-10, 11-20, 21-30, 31-40, 41-50, 51-60, 61-70, 71-80, 81-90, and 91-100
+
+churn score: a value from 0-100 that is calculated using the predictive tool ibm spss modeler. the model incorporates multiple factors known to cause churn. the higher the score, the more likely the customer will churn.
+
+churn value: 1 = the customer left the company this quarter. 0 = the customer remained with the company. directly related to churn label.
+
+city: the city of the customer’s primary residence.
+
+cltv category: a calculation that assigns a cltv value to one of the following categories: 2000-2500, 2501-3000, 3001-3500, 3501-4000, 4001-4500, 4501-5000, 5001-5500, 5501-6000, 6001-6500, and 6501-7000.
+
+cltv: customer lifetime value. a predicted cltv is calculated using corporate formulas and existing data. the higher the value, the more valuable the customer. high value customers should be monitored for churn.
+
+contract: indicates the customer’s current contract type: month-to-month, one year, two year.
+
+country: the country of the customer’s primary residence.
+
+customer status: indicates the status of the customer at the end of the quarter: churned, stayed, or joined
+
+dependents: indicates if the customer lives with any dependents: yes, no. dependents could be children, parents, grandparents, etc.
+
+device protection plan: indicates if the customer subscribes to an additional device protection plan for their internet equipment provided by the company: yes, no
+
+gender: the customer’s gender: male, female
+
+internet service: indicates if the customer subscribes to internet service with the company: no, dsl, fiber optic, cable.
+
+married: indicates if the customer is married: yes, no
+
+monthly charge: indicates the customer’s current total monthly charge for all their services from the company.
+
+multiple lines: indicates if the customer subscribes to multiple telephone lines with the company: yes, no
+
+number of dependents: indicates the number of dependents that live with the customer.
+
+number of referrals: indicates the number of referrals to date that the customer has made.
+
+offer: identifies the last marketing offer that the customer accepted, if applicable. values include none, offer a, offer b, offer c, offer d, and offer e.
+
+online backup: indicates if the customer subscribes to an additional online backup service provided by the company: yes, no
+
+online security: indicates if the customer subscribes to an additional online security service provided by the company: yes, no
+
+paperless billing: indicates if the customer has chosen paperless billing: yes, no
+
+payment method: indicates how the customer pays their bill: bank withdrawal, credit card, mailed check
+
+phone service: indicates if the customer subscribes to home phone service with the company: yes, no
+
+population: a current population estimate for the entire zip code area.
+
+premium tech support: indicates if the customer subscribes to an additional technical support plan from the company with reduced wait times: yes, no
+
+quarter: the fiscal quarter that the data has been derived from (e.g. q3).
+
+referred a friend: indicates if the customer has ever referred a friend or family member to this company: yes, no
+
+satisfaction score label: indicates the text version of the score (1-5) as a text string.
+
+satisfaction score: a customer’s overall satisfaction rating of the company from 1 (very unsatisfied) to 5 (very satisfied).
+
+senior citizen: indicates if the customer is 65 or older: yes, no
+
+state: the state of the customer’s primary residence.
+
+streaming movies: indicates if the customer uses their internet service to stream movies from a third party provider: yes, no. the company does not charge an additional fee for this service.
+
+streaming music: indicates if the customer uses their internet service to stream music from a third party provider: yes, no. the company does not charge an additional fee for this service.
+
+streaming tv: indicates if the customer uses their internet service to stream television programing from a third party provider: yes, no. the company does not charge an additional fee for this service.
+
+tenure in months: indicates the total amount of months that the customer has been with the company by the end of the quarter specified above.
+
+total charges: indicates the customer’s total charges, calculated to the end of the quarter specified above.
+
+total extra data charges: indicates the customer’s total charges for extra data downloads above those specified in their plan, by the end of the quarter specified above.
+
+total long distance charges: indicates the customer’s total charges for long distance above those specified in their plan, by the end of the quarter specified above.
+
+total refunds: indicates the customer’s total refunds, calculated to the end of the quarter specified above.
+
+unlimited data: indicates if the customer has paid an additional monthly fee to have unlimited data downloads/uploads: yes, no
+
+zip code: the zip code of the customer’s primary residence.
+
