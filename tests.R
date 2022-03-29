@@ -45,3 +45,26 @@ ggplot(tp_plot, aes(number_variables, adjr2)) +
     geom_point() +
     theme_light()
 
+
+
+
+library(tidyverse)  # data manipulation and visualization
+library(modelr)     # provides easy pipeline modeling functions
+library(broom)      # helps to tidy up model outputs
+(default <- as_tibble(ISLR2::Default))
+
+set.seed(123)
+sample <- sample(c(TRUE, FALSE), nrow(default), replace = T, prob = c(0.6,0.4))
+train <- default[sample, ]
+test <- default[!sample, ]
+
+model1 <- glm(default ~ balance, family = "binomial", data = train)
+
+default %>%
+    mutate(prob = ifelse(default == "Yes", 1, 0)) %>%
+    ggplot(aes(balance, prob, color = student)) +
+    geom_point(alpha = .15) +
+    geom_smooth(method = "glm", method.args = list(family = "binomial")) +
+    ggtitle("Logistic regression model fit") +
+    xlab("Balance") +
+    ylab("Probability of Default")
