@@ -5,6 +5,8 @@ library(readxl)
 library(ggpubr)
 library(ggrepel)
 
+# fonte da base com as associacoes entre cep e condado: https://worldpopulationreview.com/zips
+
 read_xlsx_custom <- function(file_name) {
     dados <- read_xlsx(file_name) %>% 
         rename_with(~ str_to_lower(str_replace_all(.x, ' ', '_')))
@@ -29,7 +31,7 @@ tc_services <- read_xlsx_custom('csvs/Telco_customer_churn_services.xlsx') %>%
            internet_type, avg_monthly_gb_download, online_security, online_backup, device_protection_plan, 
            premium_tech_support, streaming_tv, streaming_movies, streaming_music, unlimited_data,
            contract, paperless_billing, payment_method, monthly_charge, total_charges, total_refunds, 
-           total_extra_data_charges, total_long_distance_charges, total_revenue)
+           total_extra_data_charges, total_long_distance_charges)
 
 
 tc_status <- read_xlsx_custom('csvs/Telco_customer_churn_status.xlsx') %>% 
@@ -48,10 +50,11 @@ tc <- tc_demographics %>%
                            'streaming_tv', 'streaming_movies', 'streaming_music',
                            'unlimited_data', 'paperless_billing', 'under_30',
                            'senior_citizen', 'married', 'dependents')), ~ ifelse(.x == 'Yes', 1, 0))) %>% 
-    mutate(tx_valores_reembolsados = total_refunds / total_charges,
+    mutate(cobranca_total_completa = total_charges + total_long_distance_charges + total_extra_data_charges,
+           tx_valores_reembolsados = total_refunds / cobranca_total_completa,
            tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia E se o valor mensal cobrado atualmente eh superior aos valores anteriores
-           tx_contrib_cobrancas_dados_extras_cobrancas_totais = total_extra_data_charges / total_charges,
-           tx_contrib_cobrancas_long_dist_cobrancas_totais = total_long_distance_charges / total_charges,
+           tx_contrib_cobrancas_dados_extras_cobrancas_totais = total_extra_data_charges / cobranca_total_completa,
+           tx_contrib_cobrancas_long_dist_cobrancas_totais = total_long_distance_charges / cobranca_total_completa,
            total_gb_downloaded = tenure_in_months * avg_monthly_gb_download,
            qtd_mensal_media_indicacoes  = number_of_referrals / tenure_in_months,
            valor_mensal_medio_cobrancas_dados_extras = total_extra_data_charges / tenure_in_months,
@@ -68,6 +71,11 @@ tc <- tc_demographics %>%
                            'senior_citizen', 'married', 'dependents')), as.factor))
 
 
+# Caracteristicas estranhas observadas nos dados:
+#   filter(tc, total_long_distance_charges > total_charges) %>% select(total_extra_data_charges, total_charges) %>% View()
+#   filter(tc, total_extra_data_charges > total_charges) %>% select(total_extra_data_charges, total_charges) %>% View()
+# Por isso, entende-se que a variavel 'total_charges', nao compreende as cobrancas extras
+
 # interacoes para teste: tenure_in_months * cltv
 
 tc$tx_concentracao_cobranca_mes_q3 %>% summary()
@@ -82,7 +90,7 @@ rm(tc_status)
 zip_county <- read_csv('csvs/world_pop_review_zip.csv')
 
 dados_geo <- tc %>% 
-    select(flg_churn, zip_code, latitude, longitude) %>% 
+    select(customer_id, churn_category, flg_churn, zip_code, latitude, longitude) %>% 
     left_join(zip_county, by = c('zip_code' = 'zip'))
 
 churn_county <- dados_geo %>% 
@@ -93,6 +101,21 @@ churn_county <- dados_geo %>%
            taxa_contrib_qtd_churn = qtd_clientes_churn / sum(qtd_clientes_churn, na.rm = T)) %>%
     arrange(desc(taxa_churn))
 
+motivo_churn <- dados_geo %>% 
+    filter(flg_churn == 1) %>% 
+    group_by(county, churn_category) %>% 
+    summarise(qtd_clientes = n()) %>% 
+    mutate(taxa_clientes = qtd_clientes / sum(qtd_clientes)) %>% 
+    ungroup()
+
+tp_motivo_churn <- motivo_churn %>% 
+    group_by(county) %>% 
+    filter(qtd_clientes == max(qtd_clientes, na.rm = T)) %>% 
+    summarise(taxa_clientes_categoria = sum(taxa_clientes, na.rm = T),
+              churn_category = paste(churn_category, collapse = ' & '))
+
+churn_county <- churn_county %>% 
+    left_join(tp_motivo_churn, by = 'county')
 
 churn_long_lat <- dados_geo %>% 
     group_by(longitude, latitude) %>% 
@@ -176,6 +199,32 @@ ggarrange(p3, p4, common.legend = F, legend = 'bottom', align = 'hv')
 ggsave("plots/churn_por_condado.png", width = 9, height = 5)
 
 
+ggplot() +
+    geom_sf(data = shp_counties, mapping = aes(fill = churn_category), size = 0.3) +
+    scale_fill_brewer(palette = 'Set3') +
+    theme_light() +
+    labs(x = NULL, y = NULL, fill = '',
+         title = 'Principais motivos de churn')
+
+ggsave("plots/principais_motivos_churn.png", width = 9, height = 5)
+
+# Condados com maiores taxas de churn
+top_motivo_churn_1 <- motivo_churn %>% 
+    filter(county %in% c('Del Norte', 'Colusa', 'Napa', 'Stanislaus', 'San Diego')) %>% 
+    group_by(churn_category) %>% 
+    summarise(qtd_clientes = sum(qtd_clientes)) %>% 
+    mutate(taxa_clientes = qtd_clientes / sum(qtd_clientes)) %>% 
+    arrange(desc(qtd_clientes))
+
+
+# Condados com maior contribuicao no churn total
+top_motivo_churn_2 <- motivo_churn %>% 
+           filter(county %in% c('Los Angeles', 'San Bernardino', 'Riverside', 'Orange', 'San Diego')) %>% 
+    group_by(churn_category) %>% 
+    summarise(qtd_clientes = sum(qtd_clientes)) %>% 
+    mutate(taxa_clientes = qtd_clientes / sum(qtd_clientes)) %>% 
+    arrange(desc(qtd_clientes))
+
 tc <- tc %>% mutate(flg_churn = as.factor(flg_churn))
 
 # Distribuicao das variaveis
@@ -213,11 +262,7 @@ ggplot(to_plot %>%
     labs(x = NULL, y = NULL)
 
 
-ggplot(tc %>% 
-           mutate(flg_churn = ifelse(flg_churn == '1', 1, 0),
-                  taxa_valores_reembolsados = total_refunds / total_charges,
-                  taxa_c_cobranca_1m_q3 = monthly_charge / total_charges),
-       aes(v5, flg_churn, color = payment_method)) +
+ggplot(tc, aes(tx_contrib_cobrancas_dados_extras_cobrancas_totais, ifelse(flg_churn == '1', 1, 0))) +
     geom_point(alpha = .05) +
     geom_smooth(method = 'glm', method.args = list(family = 'binomial'), se = F) +
     theme_light()
