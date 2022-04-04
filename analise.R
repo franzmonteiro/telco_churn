@@ -4,8 +4,11 @@ library(stringr)
 library(readxl)
 library(ggpubr)
 library(ggrepel)
+library(caret)
 
 # fonte da base com as associacoes entre cep e condado: https://worldpopulationreview.com/zips
+
+# a variavel revenue nao sera utilizada, por nao aparecer na documentacao da ibm
 
 read_xlsx_custom <- function(file_name) {
     dados <- read_xlsx(file_name) %>% 
@@ -38,11 +41,15 @@ tc_status <- read_xlsx_custom('csvs/Telco_customer_churn_status.xlsx') %>%
     select(customer_id, satisfaction_score, customer_status, churn_value, cltv, churn_category, churn_reason)
 
 
+zip_county <- read_csv('csvs/world_pop_review_zip.csv') %>% 
+    select(zip, county)
+
 tc <- tc_demographics %>% 
     left_join(tc_location, by = 'customer_id') %>% 
     left_join(tc_population, by = 'zip_code') %>% 
     left_join(tc_services, by = 'customer_id') %>% 
     left_join(tc_status, by = 'customer_id') %>% 
+    left_join(zip_county, by = c('zip_code' = 'zip')) %>% 
     rename(flg_churn = churn_value) %>% 
     mutate(across(all_of(c('device_protection_plan', 'internet_service', 'online_backup',
                            'online_security', 'phone_service', 'premium_tech_support',
@@ -52,7 +59,7 @@ tc <- tc_demographics %>%
                            'senior_citizen', 'married', 'dependents')), ~ ifelse(.x == 'Yes', 1, 0))) %>% 
     mutate(valor_cobranca_geral = total_charges + total_long_distance_charges + total_extra_data_charges,
            tx_valores_reembolsados_1 = total_refunds / valor_cobranca_geral,
-           tx_valores_reembolsados_2 = total_refunds / (total_long_distance_charges + total_extra_data_charges),
+           tx_valores_reembolsados_2 = ifelse((total_long_distance_charges + total_extra_data_charges) == 0, 0, total_refunds / (total_long_distance_charges + total_extra_data_charges)),
            tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia, e se o valor da mensalidade atual eh superior ao das mensalidades anteriores
            tx_contrib_cobrancas_extras_cobranca_geral = (total_long_distance_charges + total_extra_data_charges) / valor_cobranca_geral,
            total_gb_downloaded = tenure_in_months * avg_monthly_gb_download,
@@ -72,7 +79,6 @@ tc <- tc_demographics %>%
                            'unlimited_data', 'paperless_billing', 'under_30',
                            'senior_citizen', 'married', 'dependents')), as.factor))
 
-
 # Caracteristicas estranhas observadas nos dados:
 #   filter(tc, total_long_distance_charges > total_charges) %>% select(total_long_distance_charges, total_charges) %>% View()
 #   filter(tc, total_extra_data_charges > total_charges) %>% select(total_extra_data_charges, total_charges) %>% View()
@@ -88,12 +94,9 @@ rm(tc_population)
 rm(tc_services)
 rm(tc_status)
 
-
-zip_county <- read_csv('csvs/world_pop_review_zip.csv')
-
 dados_geo <- tc %>% 
-    select(customer_id, churn_category, flg_churn, zip_code, latitude, longitude) %>% 
-    left_join(zip_county, by = c('zip_code' = 'zip'))
+    select(customer_id, churn_category, flg_churn, zip_code, latitude, longitude, county)
+
 
 churn_county <- dados_geo %>% 
     group_by(county) %>% 
@@ -264,7 +267,8 @@ ggplot(to_plot %>%
     labs(x = NULL, y = NULL)
 
 
-ggplot(tc, aes(tx_contrib_cobrancas_dados_extras_cobranca_geral, ifelse(flg_churn == '1', 1, 0))) +
+ggplot(tc, aes(tx_contrib_cobrancas_extras_cobranca_geral, 
+               ifelse(flg_churn == '1', 1, 0))) +
     geom_point(alpha = .05) +
     geom_smooth(method = 'glm', method.args = list(family = 'binomial'), se = F) +
     theme_light()
@@ -284,5 +288,36 @@ ggplot(to_plot_2 %>% filter(!var %in% c('city', 'zip_code', 'churn_reason', 'chu
     facet_wrap(~ var, scales = 'free_y') +
     theme_light() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-    labs(x = NULL, y = NULL) +
+    labs(x = NULL, y = NULL, color = 'Churn ?', fill = 'Churn ?') +
     coord_flip()
+
+
+# Amostragem
+set.seed(1)
+train_idx <- createDataPartition(tc$flg_churn, p = .7, list = F)
+tc_train <- tc[train_idx,]
+tc_test <- tc[-train_idx,]
+rm(tc)
+
+## Treinamento
+modelo_vazio <- glm(flg_churn ~ 1,
+                        data = select(tc_train, -c(customer_id, city, churn_category, churn_reason, satisfaction_score, customer_status, zip_code)),
+                        family = 'binomial')
+
+modelo_logistico <- glm(flg_churn ~ . ^2,
+        data = select(tc_train, -c(customer_id, city, churn_category, churn_reason, satisfaction_score, customer_status, zip_code)),
+        family = 'binomial')
+
+summary(modelo_logistico)
+
+tmp <- MASS::stepAIC(modelo_logistico,
+            scope = list(lower = modelo_vazio, upper = modelo_logistico),
+            direction = 'both',
+            trace = 1)
+
+summary(tmp)
+
+# modelo_vazio <- glmmTMB(flg_churn ~ 1,
+#                         data = tc,
+#                         family = binomial, 
+#                         REML = F)
