@@ -50,11 +50,12 @@ tc <- tc_demographics %>%
                            'streaming_tv', 'streaming_movies', 'streaming_music',
                            'unlimited_data', 'paperless_billing', 'under_30',
                            'senior_citizen', 'married', 'dependents')), ~ ifelse(.x == 'Yes', 1, 0))) %>% 
-    mutate(cobranca_total_completa = total_charges + total_long_distance_charges + total_extra_data_charges,
-           tx_valores_reembolsados = total_refunds / cobranca_total_completa,
-           tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia E se o valor mensal cobrado atualmente eh superior aos valores anteriores
-           tx_contrib_cobrancas_dados_extras_cobrancas_totais = total_extra_data_charges / cobranca_total_completa,
-           tx_contrib_cobrancas_long_dist_cobrancas_totais = total_long_distance_charges / cobranca_total_completa,
+    mutate(valor_cobranca_geral = total_charges + total_long_distance_charges + total_extra_data_charges,
+           tx_valores_reembolsados_1 = total_refunds / valor_cobranca_geral,
+           tx_valores_reembolsados_2 = total_refunds / (total_long_distance_charges + total_extra_data_charges),
+           tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia, e se o valor da mensalidade atual eh superior ao das mensalidades anteriores
+           tx_contrib_cobrancas_dados_extras_cobranca_geral = total_extra_data_charges / valor_cobranca_geral,
+           tx_contrib_cobrancas_long_dist_cobranca_geral = total_long_distance_charges / valor_cobranca_geral,
            total_gb_downloaded = tenure_in_months * avg_monthly_gb_download,
            qtd_mensal_media_indicacoes  = number_of_referrals / tenure_in_months,
            valor_mensal_medio_cobrancas_dados_extras = total_extra_data_charges / tenure_in_months,
@@ -62,7 +63,8 @@ tc <- tc_demographics %>%
            relacao_valor_cobranca_atual_valor_medio_mensal = monthly_charge / valor_mensal_medio_cobrancas_totais, # possivel forma de identificar que o cliente teve aumento na fatura
            qtd_servicos_adicionais = device_protection_plan + internet_service + online_backup + online_security + phone_service + premium_tech_support + unlimited_data,
            qtd_streamings_utilizados = streaming_movies + streaming_music + streaming_tv,
-           tx_contrib_cobrancas_cliente_base_total = total_charges / sum(total_charges)) %>% 
+           tx_contrib_cobrancas_cliente_base_total_1 = total_charges / sum(total_charges),
+           tx_contrib_cobrancas_cliente_base_total_2 = valor_cobranca_geral / sum(valor_cobranca_geral)) %>% 
     mutate(across(all_of(c('device_protection_plan', 'internet_service', 'online_backup',
                            'online_security', 'phone_service', 'premium_tech_support',
                            'referred_a_friend', 'multiple_lines',
@@ -262,7 +264,7 @@ ggplot(to_plot %>%
     labs(x = NULL, y = NULL)
 
 
-ggplot(tc, aes(tx_contrib_cobrancas_dados_extras_cobrancas_totais, ifelse(flg_churn == '1', 1, 0))) +
+ggplot(tc, aes(tx_contrib_cobrancas_dados_extras_cobranca_geral, ifelse(flg_churn == '1', 1, 0))) +
     geom_point(alpha = .05) +
     geom_smooth(method = 'glm', method.args = list(family = 'binomial'), se = F) +
     theme_light()
