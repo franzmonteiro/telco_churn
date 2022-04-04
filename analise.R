@@ -1,9 +1,9 @@
 library(sf)
-library(ggrepel)
 library(tidyverse)
 library(stringr)
 library(readxl)
 library(ggpubr)
+library(ggrepel)
 
 read_xlsx_custom <- function(file_name) {
     dados <- read_xlsx(file_name) %>% 
@@ -48,24 +48,29 @@ tc <- tc_demographics %>%
                            'streaming_tv', 'streaming_movies', 'streaming_music',
                            'unlimited_data', 'paperless_billing', 'under_30',
                            'senior_citizen', 'married', 'dependents')), ~ ifelse(.x == 'Yes', 1, 0))) %>% 
-    mutate(taxa_valores_reembolsados = total_refunds / total_charges,
-           taxa_concentracao_cobranca_mes_q3 = monthly_charge / total_charges,
-           v1 = avg_monthly_long_distance_charges / monthly_charge,
-           v2 = total_extra_data_charges / total_charges,
-           v3 = total_long_distance_charges / total_charges,
-           v4 = tenure_in_months * avg_monthly_gb_download,
-           v5 = tenure_in_months * cltv,
-           v6  = number_of_referrals / tenure_in_months,
-           v7 = total_extra_data_charges / tenure_in_months,
-           v8 = total_charges / tenure_in_months,
-           v9 = total_extra_data_charges / tenure_in_months,
-           qtd_servicos_assinados = device_protection_plan + internet_service + online_backup + online_security + phone_service + premium_tech_support + unlimited_data,
+    mutate(tx_valores_reembolsados = total_refunds / total_charges,
+           tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia E se o valor mensal cobrado atualmente eh superior aos valores anteriores
+           tx_contrib_cobrancas_dados_extras_cobrancas_totais = total_extra_data_charges / total_charges,
+           tx_contrib_cobrancas_long_dist_cobrancas_totais = total_long_distance_charges / total_charges,
+           total_gb_downloaded = tenure_in_months * avg_monthly_gb_download,
+           qtd_mensal_media_indicacoes  = number_of_referrals / tenure_in_months,
+           valor_mensal_medio_cobrancas_dados_extras = total_extra_data_charges / tenure_in_months,
+           valor_mensal_medio_cobrancas_totais = total_charges / tenure_in_months,
+           relacao_valor_cobranca_atual_valor_medio_mensal = monthly_charge / valor_mensal_medio_cobrancas_totais, # possivel forma de identificar que o cliente teve aumento na fatura
+           qtd_servicos_adicionais = device_protection_plan + internet_service + online_backup + online_security + phone_service + premium_tech_support + unlimited_data,
            qtd_streamings_utilizados = streaming_movies + streaming_music + streaming_tv,
-           v100 = tenure_in_months * avg_monthly_long_distance_charges # igual a total_long_distance_charges
-           )
+           tx_contrib_cobrancas_cliente_base_total = total_charges / sum(total_charges)) %>% 
+    mutate(across(all_of(c('device_protection_plan', 'internet_service', 'online_backup',
+                           'online_security', 'phone_service', 'premium_tech_support',
+                           'referred_a_friend', 'multiple_lines',
+                           'streaming_tv', 'streaming_movies', 'streaming_music',
+                           'unlimited_data', 'paperless_billing', 'under_30',
+                           'senior_citizen', 'married', 'dependents')), as.factor))
 
 
-tc$taxa_concentracao_cobranca_mes_q3 %>% summary()
+# interacoes para teste: tenure_in_months * cltv
+
+tc$tx_concentracao_cobranca_mes_q3 %>% summary()
 
 rm(tc_demographics)
 rm(tc_location)
@@ -84,44 +89,42 @@ churn_county <- dados_geo %>%
     group_by(county) %>% 
     summarise(qtd_clientes = n(),
               qtd_clientes_churn = sum(flg_churn)) %>% 
-    mutate(taxa_churn = qtd_clientes_churn / qtd_clientes) %>%
+    mutate(taxa_churn = qtd_clientes_churn / qtd_clientes,
+           taxa_contrib_qtd_churn = qtd_clientes_churn / sum(qtd_clientes_churn, na.rm = T)) %>%
     arrange(desc(taxa_churn))
 
-
-churn_city <- dados_geo %>% 
-    group_by(city) %>% 
-    summarise(qtd_clientes = n(),
-              qtd_clientes_churn = sum(flg_churn)) %>% 
-    mutate(taxa_churn = qtd_clientes_churn / qtd_clientes) %>%
-    arrange(desc(taxa_churn))
 
 churn_long_lat <- dados_geo %>% 
     group_by(longitude, latitude) %>% 
     summarise(qtd_clientes = n(),
               qtd_clientes_churn = sum(flg_churn)) %>% 
-    mutate(taxa_churn = qtd_clientes_churn / qtd_clientes) %>%
+    ungroup() %>% 
+    mutate(taxa_churn = qtd_clientes_churn / qtd_clientes,
+           taxa_contrib_qtd_churn = qtd_clientes_churn / sum(qtd_clientes_churn, na.rm = T)) %>%
     arrange(desc(taxa_churn))
 
 
 shp_counties <- read_sf("ca_counties/CA_Counties_TIGER2016.shp") %>% 
     left_join(churn_county, by = c('NAME' = 'county'))
 
-p1 <- ggplot(shp_counties) +
-    geom_sf(mapping = aes(fill = taxa_churn)) +
-    geom_sf_text(mapping = aes(label = NAME), size = 1.5, color = 'white') +
-    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
-    theme_light() +
-    labs(x = NULL, y = NULL, fill = 'Churn')
-
-p1
 
 sf_long_lat <- churn_long_lat %>% 
     st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
 
-p2 <- ggplot() +
-    geom_sf(data = shp_counties) +
+p1 <- ggplot() +
+    geom_sf(data = shp_counties, fill = NA, size = 0.3) +
     geom_sf(data = sf_long_lat, mapping = aes(color = taxa_churn, size = taxa_churn, alpha = taxa_churn)) +
+    scale_size(guide = 'none') +
+    scale_alpha(guide = 'none') +
+    scale_color_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    theme_light() +
+    labs(x = NULL, y = NULL, color = NULL,
+         title = '% Churn')
+
+p2 <- ggplot() +
+    geom_sf(data = shp_counties, fill = NA, size = 0.3) +
+    geom_sf(data = sf_long_lat, mapping = aes(color = taxa_contrib_qtd_churn, size = taxa_contrib_qtd_churn, alpha = taxa_contrib_qtd_churn)) +
     scale_size(guide = 'none') +
     scale_alpha(guide = 'none') +
     scale_color_viridis_c(labels = scales::percent_format(accuracy = 1)) +
@@ -129,25 +132,49 @@ p2 <- ggplot() +
     theme(axis.title.y = element_blank(),
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank()) +
-    labs(x = NULL, y = NULL, color = 'Churn')
+    labs(x = NULL, y = NULL, color = NULL,
+         title = 'Concentração do churn')
 
 
-ggarrange(p1, p2, nrow = 1, common.legend = T, legend = 'right')
+ggarrange(p1, p2, common.legend = F, legend = 'right', align = 'hv')
 
 ggsave("plots/taxa_churn.png", width = 9, height = 5)
 
-shp_places <- read_sf("ca_places_boundaries/CA_Places_TIGER2016.shp") %>% 
-    left_join(churn_city, by = c('NAME' = 'city'))
 
-ggplot() +
-    geom_sf(data = shp_counties) +
-    geom_sf(data = shp_places, mapping = aes(fill = taxa_churn)) +
+p3 <- ggplot() +
+    geom_sf(data = shp_counties, mapping = aes(fill = taxa_churn), size = 0.3) +
+    geom_label_repel(
+        data = head(arrange(shp_counties, desc(taxa_churn)), 5),
+        aes(label = NAME, geometry = geometry),
+        size = 2,
+        stat = "sf_coordinates",
+        min.segment.length = 0) +
     scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = 'Churn')
+    labs(x = NULL, y = NULL, fill = '',
+         title = '% Churn')
 
 
-# tmap_arrange(map_counties, map_places, map_long_lat, nrow = 3)
+p4 <- ggplot() +
+    geom_sf(data = shp_counties, mapping = aes(fill = taxa_contrib_qtd_churn), size = 0.3) +
+    geom_label_repel(
+        data = head(arrange(shp_counties, desc(taxa_contrib_qtd_churn)), 5),
+        aes(label = NAME, geometry = geometry),
+        size = 2,
+        stat = "sf_coordinates",
+        min.segment.length = 0) +
+    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    theme_light() +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank()) +
+    labs(x = NULL, y = NULL, fill = '',
+         title = 'Concentração do churn')
+
+ggarrange(p3, p4, common.legend = F, legend = 'bottom', align = 'hv')
+
+ggsave("plots/churn_por_condado.png", width = 9, height = 5)
+
 
 tc <- tc %>% mutate(flg_churn = as.factor(flg_churn))
 
@@ -163,8 +190,10 @@ ggplot(to_plot, aes(flg_churn, value, fill = flg_churn)) +
     # scale_fill_viridis_d() +
     facet_wrap(~ var, scales = 'free') +
     theme_light() +
-    theme(axis.text.x = element_blank()) +
-    labs(x = NULL, y = NULL)
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank()) +
+    labs(x = NULL, y = NULL, fill = 'Churn ?')
 
 
 ggplot(to_plot, aes(value, fill = flg_churn)) +
