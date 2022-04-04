@@ -54,14 +54,12 @@ tc <- tc_demographics %>%
            tx_valores_reembolsados_1 = total_refunds / valor_cobranca_geral,
            tx_valores_reembolsados_2 = total_refunds / (total_long_distance_charges + total_extra_data_charges),
            tx_concentracao_cobranca_mes_q3 = monthly_charge / total_charges, # possivel indicador da quantidade de meses que o cliente esta com a companhia, e se o valor da mensalidade atual eh superior ao das mensalidades anteriores
-           tx_contrib_cobrancas_dados_extras_cobranca_geral = total_extra_data_charges / valor_cobranca_geral,
-           tx_contrib_cobrancas_long_dist_cobranca_geral = total_long_distance_charges / valor_cobranca_geral,
            tx_contrib_cobrancas_extras_cobranca_geral = (total_long_distance_charges + total_extra_data_charges) / valor_cobranca_geral,
            total_gb_downloaded = tenure_in_months * avg_monthly_gb_download,
            qtd_mensal_media_indicacoes  = number_of_referrals / tenure_in_months,
-           valor_mensal_medio_cobrancas_dados_extras = total_extra_data_charges / tenure_in_months,
            valor_mensal_medio_cobrancas_extras = (total_long_distance_charges + total_extra_data_charges) / tenure_in_months,
            valor_mensal_medio_cobrancas_totais = total_charges / tenure_in_months,
+           valor_mensal_medio_cobranca_geral = valor_cobranca_geral / tenure_in_months,
            relacao_valor_cobranca_atual_valor_medio_mensal = monthly_charge / valor_mensal_medio_cobrancas_totais, # possivel forma de identificar que o cliente teve aumento na fatura
            qtd_servicos_adicionais = device_protection_plan + internet_service + online_backup + online_security + phone_service + premium_tech_support + unlimited_data,
            qtd_streamings_utilizados = streaming_movies + streaming_music + streaming_tv,
