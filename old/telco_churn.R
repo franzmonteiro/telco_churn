@@ -187,18 +187,7 @@ graficos[[2]]
 graficos[[3]]
 
 
-ggcorr(select(tc, where(is.numeric) & -matches('_std')),
-               # legend.position = 'bottom',
-               # legend.size = 12,
-               # geom = "circle",
-               label = T,
-               label_round = 2,
-               label_size = 3,
-               label_alpha = T,
-               hjust = 1,
-               size = 3,
-               color = 'grey50',
-               layout.exp = 3)
+
 
 
 # Correlacao entre variaveis numericas
