@@ -11,7 +11,7 @@ library(glmmTMB)
 library(lmtest)
 library(tidycensus)
 library(zipcodeR)
-library(StepReg)
+# library(StepReg)
 library(buildmer)
 options(tigris_use_cache = T)
 
@@ -158,7 +158,57 @@ tc %>% select(matches('tx_')) %>% summary()
 rm(list = c('tc_demographics', 'tc_location', 'tc_population', 'tc_services', 'tc_status'))
 
 
+tc$flg_churn %>% table() %>% prop.table()
+tc$customer_status %>% table() %>% prop.table()
+tc$churn_category %>% table() %>% prop.table()
+
+
 ## Graficos
+prep_motivo_churn <- tc %>% 
+    filter(flg_churn_numeric == 1) %>% 
+    group_by(churn_category, churn_reason) %>% 
+    summarise(qtd_clientes = n()) %>% 
+    ungroup() %>% 
+    mutate(tx_contrib_clientes_reason = qtd_clientes / sum(qtd_clientes),
+           tx_contrib_clientes_reason = round(tx_contrib_clientes_reason * 100, 1)) %>% 
+    group_by(churn_category) %>% 
+    mutate(qtd_clientes_category = sum(qtd_clientes)) %>% 
+    ungroup() %>% 
+    mutate(tx_contrib_category = qtd_clientes_category / sum(qtd_clientes),
+           tx_contrib_category = round(tx_contrib_category * 100, 1),
+           churn_category = paste(churn_category, tx_contrib_category, sep = '; '))
+
+g1_motivo_churn <- ggplot(prep_motivo_churn,
+       aes(reorder(churn_reason, qtd_clientes), qtd_clientes,
+           fill = churn_category, label = tx_contrib_clientes_reason)) +
+    geom_col(position = 'dodge') +
+    geom_text(hjust = -0.15, size = 2.5, position = position_dodge(width = 1)) +
+    scale_fill_viridis_d() +
+    labs(x = NULL, y = NULL, fill = "Motivo") +
+    coord_flip() +
+    theme_light()
+
+ggsave("plots/motivo_churn_geral.png", plot = g1_motivo_churn, width = 9, height = 5)
+
+
+txs_churn_category_condado <- tc %>% 
+    filter(flg_churn_numeric == 1) %>% 
+    group_by(latitude, longitude, churn_category) %>% 
+    summarise(qtd_clientes = n()) %>% 
+    ungroup() %>% 
+    st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+
+ggplot() +
+    geom_sf(data = tigris::counties(state = 'CA', year = 2010), fill = NA, size = 0.3) +
+    geom_sf(data = txs_churn_category_condado, mapping = aes(color = churn_category, shape = churn_category)) +
+    scale_size(guide = 'none') +
+    scale_alpha(guide = 'none') +
+    scale_color_viridis_d() +
+    theme_light() +
+    labs(x = NULL, y = NULL, title = )
+
+
+
 txs_churn_condado <- tc %>% 
     group_by(county) %>% 
     summarise(qtd_clientes = n(),
@@ -204,6 +254,7 @@ g2_condado <- ggplot() +
 g3_condado <- ggarrange(g1_condado, g2_condado, common.legend = F, legend = 'right', align = 'hv')
 
 ggsave("plots/churn_por_condado.png", plot = g3_condado, width = 9, height = 5)
+
 
 
 # Modelagem
