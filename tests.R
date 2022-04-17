@@ -1,6 +1,7 @@
 library(tidyverse)
 library(ISLR2)
 library(leaps)
+library(caret)
 
 Hitters <- na.omit(Hitters)
 sum(is.na(Hitters))
@@ -188,3 +189,72 @@ plotly::ggplotly()
 
 
 test <- blocks(state = "AS", year = 2010)
+
+
+
+
+dados <- read_csv("csvs/syriatel.csv") %>% 
+    rename_with(~ str_to_lower(str_replace_all(.x, ' ', '_'))) %>% 
+    mutate(churn = as.factor(ifelse(churn, 1, 0)),
+           area_code = as.factor(area_code))
+
+dados_std <- dados %>% 
+    mutate(across(where(is.numeric), ~ (.x - mean(.x)) / sd(.x)))
+
+dados_std %>% select(where(is.numeric)) %>% glimpse()
+
+# Amostragem
+set.seed(1)
+train_idx <- createDataPartition(dados_std$churn, p = .7, list = F)
+dados_train <- dados_std[train_idx,]
+dados_test <- dados_std[-train_idx,]
+# rm(tc)
+
+dim(dados_train)
+glimpse(dados_train)
+
+dados_train$churn %>% table()
+dados_train$churn %>% table() %>% prop.table()
+dados_test$churn %>% table() %>% prop.table()
+
+
+## Treinamento
+modelo_vazio <- glm(churn ~ 1,
+                    data = dados_train,
+                    family = binomial)
+
+modelo_tudo <- glm(churn ~ . -phone_number,
+                   data = dados_train,
+                   family = binomial)
+
+summary(modelo_tudo)
+
+AIC(modelo_tudo)
+
+modelo_step <- MASS::stepAIC(modelo_vazio,
+                             direction = 'both',
+                             scope = list(lower = modelo_vazio, upper = modelo_tudo),
+                             trace = 1)
+
+summary(modelo_step)
+
+library(glmmTMB)
+
+glmm_vazio <- glmmTMB(churn ~ 1 + (1 | state),
+                      data = dados_train,
+                      family = binomial,
+                      REML = T)
+
+AIC(glmm_vazio)
+
+formula_str <- paste(colnames(dados_train)[!colnames(dados_train) %in% c('state', 'phone_number')], collapse = ' + ')
+(formula_str <- glue::glue("churn ~ {formula_str} + (1 | state)"))
+
+library(buildmer)
+
+glmm_outro <- buildglmmTMB(as.formula(formula_str),
+                           data = dados_train,
+                           family = binomial,
+                           buildmerControl = buildmerControl(crit = 'AIC', REML = T))
+
+AIC(glmm_outro)
