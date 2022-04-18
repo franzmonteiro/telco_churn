@@ -21,7 +21,7 @@ internet service|Indica se o cliente assina serviço de internet da companhia;no
 married|Indica se o cliente é casado;yes, no
 monthly charge|Indica a atual cobrança mensal total do cliente, por todos os serviços que utiliza da companhia.
 multiple lines|Indica se o cliente assina múltiplas linhas telefônicas da companhia;yes, no.
-number of dependents|quantidade de dependentes que vivem com o cliente.
+number of dependents|quantidade de dependentes que moram com o cliente.
 number of referrals|quantidade de indicações até o presente, feitas pelo cliente.
 offer|última oferta de marketing que o cliente aceitou, se aplicável. Os valores incluem none; offer a; offer b; offer c; offer d; e offer e.
 online backup|Indica se o cliente assina um serviço adicional de backup online, fornecido pela companhia;yes, no

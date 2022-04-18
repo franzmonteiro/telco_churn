@@ -1,14 +1,14 @@
 library(sf)
 library(tigris)
-library(tidyverse)
+library(tidyverse) # ok
 library(stringr)
 library(glue)
 library(readxl)
 library(ggpubr)
 library(ggrepel)
-library(caret)
-library(glmmTMB)
-library(lmtest)
+library(caret) # ok
+library(glmmTMB) # ok
+library(lmtest) # ok
 library(tidycensus)
 library(zipcodeR)
 # library(StepReg)
