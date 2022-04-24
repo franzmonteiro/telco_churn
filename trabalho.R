@@ -165,36 +165,36 @@ tc$churn_category %>% table() %>% prop.table()
 
 ## Graficos
 
+
+# qtd_clientes_condado <- tc %>% 
+#     group_by(county) %>% 
+#     summarise(qtd_clientes = n()) %>% 
+#     mutate(faixa_qtd_clientes = cut(qtd_clientes,
+#                                     quantile(qtd_clientes, probs = seq(0, 1, 0.2)),
+#                                     include.lowest = T, right = F,
+#                                     dig.lab = 5, ordered_result = T))
+# 
+# sf_condados_1 <- tigris::counties(state = 'CA', year = 2010) %>% 
+#     left_join(qtd_clientes_condado, by = c('NAMELSAD10' = 'county'))
+# 
+# top_3_maiores <- slice_max(sf_condados_1, qtd_clientes, n = 3)
+# top_3_menores <- slice_min(sf_condados_1, qtd_clientes, n = 3)
+# top_6_condados <- top_3_maiores %>% 
+#     rbind(top_3_menores)
+# 
+# g1_clientes <- ggplot() +
+#     geom_sf(data = sf_condados_1, mapping = aes(fill = faixa_qtd_clientes), size = 0.3) +
+#     geom_label_repel(
+#         data = top_6_condados,
+#         aes(label = NAME10, geometry = geometry),
+#         size = 2,
+#         stat = "sf_coordinates",
+#         min.segment.length = 0) +
+#     scale_fill_viridis_d() +
+#     theme_light() +
+#     labs(x = NULL, y = NULL, fill = NULL, title = 'Qtd clientes')
+
 # Distribuicao dos clientes da companhia, por condado
-qtd_clientes_condado <- tc %>% 
-    group_by(county) %>% 
-    summarise(qtd_clientes = n()) %>% 
-    mutate(faixa_qtd_clientes = cut(qtd_clientes,
-                                    quantile(qtd_clientes, probs = seq(0, 1, 0.2)),
-                                    include.lowest = T, right = F,
-                                    dig.lab = 5, ordered_result = T))
-
-sf_condados_1 <- tigris::counties(state = 'CA', year = 2010) %>% 
-    left_join(qtd_clientes_condado, by = c('NAMELSAD10' = 'county'))
-
-top_3_maiores <- head(arrange(sf_condados_1, desc(qtd_clientes)), 3)
-top_3_menores <- head(arrange(sf_condados_1, qtd_clientes), 3)
-top_6_condados <- top_3_maiores %>% 
-    rbind(top_3_menores)
-
-g1_clientes <- ggplot() +
-    geom_sf(data = sf_condados_1, mapping = aes(fill = faixa_qtd_clientes), size = 0.3) +
-    geom_label_repel(
-        data = top_6_condados,
-        aes(label = NAME10, geometry = geometry),
-        size = 2,
-        stat = "sf_coordinates",
-        min.segment.length = 0) +
-    scale_fill_viridis_d() +
-    theme_light() +
-    labs(x = NULL, y = NULL, fill = NULL, title = 'Qtd clientes')
-
-
 tx_contrib_clientes_condado <- tc %>% 
     group_by(county) %>% 
     summarise(qtd_clientes = n()) %>% 
@@ -203,30 +203,36 @@ tx_contrib_clientes_condado <- tc %>%
 sf_condados_2 <- tigris::counties(state = 'CA', year = 2010) %>% 
     left_join(tx_contrib_clientes_condado, by = c('NAMELSAD10' = 'county'))
 
-top_3_maiores <- head(arrange(sf_condados_2, desc(tx_contrib_clientes)), 3)
-top_3_menores <- head(arrange(sf_condados_2, tx_contrib_clientes), 3)
+top_3_maiores <- slice_max(sf_condados_2, tx_contrib_clientes, n = 3)
+top_3_menores <- slice_min(sf_condados_2, tx_contrib_clientes, n = 3)
 top_6_condados <- top_3_maiores %>% 
-    rbind(top_3_menores)
+    rbind(top_3_menores) %>% 
+    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * tx_contrib_clientes, 1)}%"))
+
+sf_condados_2 <- sf_condados_2 %>% 
+    mutate(tx_contrib_clientes = round(100 * tx_contrib_clientes, 1),
+           faixas_tx_contrib_clientes = cut(tx_contrib_clientes,
+                                            seq(0, ceiling(max(tx_contrib_clientes)), 1),
+                                            include.lowest = T, right = F,
+                                            dig.lab = 5, ordered_result = T))
 
 g2_clientes <- ggplot() +
     geom_sf(data = sf_condados_2,
-            mapping = aes(fill = tx_contrib_clientes), size = 0.3) +
+            mapping = aes(fill = faixas_tx_contrib_clientes), size = 0.3) +
     geom_label_repel(
         data = top_6_condados,
-        aes(label = NAME10, geometry = geometry),
+        aes(label = nome_com_percentual, geometry = geometry),
         size = 2,
         stat = "sf_coordinates",
         min.segment.length = 0) +
-    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    scale_fill_viridis_d() +
+    # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank()) +
     labs(x = NULL, y = NULL, fill = NULL, title = 'Concentração de clientes')
 
-g3_clientes <- ggarrange(g1_clientes, g2_clientes, common.legend = F, legend = 'right', align = 'hv')
+# g3_clientes <- ggarrange(g1_clientes, g2_clientes, common.legend = F, legend = 'right', align = 'hv')
 
-ggsave("plots/clientes_condado.png", plot = g3_clientes, width = 9, height = 5)
+ggsave("plots/clientes_condado.png", plot = g2_clientes, width = 9, height = 5)
 
 
 
@@ -237,21 +243,30 @@ proporcao_hab_clientes_condado <- variaveis_censo_condado %>%
 sf_condados_3 <- tigris::counties(state = 'CA', year = 2010) %>% 
     left_join(proporcao_hab_clientes_condado, by = c('NAMELSAD10' = 'NAME'))
 
-top_3_maiores <- head(arrange(sf_condados_3, desc(proporcao_habitantes_clientes)), 3)
-top_3_menores <- head(arrange(sf_condados_3, proporcao_habitantes_clientes), 3)
+top_3_maiores <- slice_max(sf_condados_3, proporcao_habitantes_clientes, n = 3)
+top_3_menores <- slice_min(sf_condados_3, proporcao_habitantes_clientes, n = 3)
 top_6_condados <- top_3_maiores %>% 
-    rbind(top_3_menores)
+    rbind(top_3_menores) %>% 
+    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * proporcao_habitantes_clientes, 2)}%"))
+
+sf_condados_3 <- sf_condados_3 %>% 
+    mutate(proporcao_habitantes_clientes = round(100 * proporcao_habitantes_clientes, 1),
+           faixas_proporcao_habitantes_clientes = cut(proporcao_habitantes_clientes,
+                                                      seq(0, 1, 0.01),
+                                                      include.lowest = T, right = F,
+                                                      dig.lab = 5, ordered_result = T))
 
 ggplot() +
     geom_sf(data = sf_condados_3,
-            mapping = aes(fill = proporcao_habitantes_clientes), size = 0.3) +
+            mapping = aes(fill = faixas_proporcao_habitantes_clientes), size = 0.3) +
     geom_label_repel(
         data = top_6_condados,
-        aes(label = NAME10, geometry = geometry),
+        aes(label = nome_com_percentual, geometry = geometry),
         size = 2,
         stat = "sf_coordinates",
         min.segment.length = 0) +
-    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    scale_fill_viridis_d() +
+    # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
     labs(x = NULL, y = NULL, fill = NULL, title = 'Prop. habitantes que foram ou são clientes')
 
@@ -273,16 +288,17 @@ prep_motivo_churn <- tc %>%
            churn_category = paste(churn_category, tx_contrib_category, sep = '; '))
 
 g1_motivo_churn <- ggplot(prep_motivo_churn,
-       aes(reorder(churn_reason, qtd_clientes), qtd_clientes,
+       aes(reorder(churn_reason, tx_contrib_clientes_reason), tx_contrib_clientes_reason,
            fill = churn_category, label = tx_contrib_clientes_reason)) +
     geom_col(position = 'dodge') +
     geom_text(hjust = -0.15, size = 2.5, position = position_dodge(width = 1)) +
     scale_fill_viridis_d() +
-    labs(x = NULL, y = NULL, fill = "Motivo") +
+    labs(x = NULL, y = NULL, fill = NULL) +
     coord_flip() +
-    theme_light()
+    theme_light() +
+    labs(title = 'Distribuição do motivo de churn')
 
-ggsave("plots/motivo_churn_geral.png", plot = g1_motivo_churn, width = 9, height = 5)
+ggsave("plots/motivo_churn_geral.png", plot = g1_motivo_churn, width = 10, height = 6)
 
 
 txs_churn_condado <- tc %>% 
@@ -296,30 +312,50 @@ txs_churn_condado <- tc %>%
 sf_condados <- tigris::counties(state = 'CA', year = 2010) %>% 
     left_join(txs_churn_condado, by = c('NAMELSAD10' = 'county'))
 
+top_6_condados_taxa_churn <- slice_max(sf_condados, taxa_churn, n = 3) %>% 
+    rbind(slice_min(sf_condados, taxa_churn, n = 3)) %>% 
+    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * taxa_churn, 1)}%"))
+
+
+top_6_condados_taxa_contrib_qtd_churn <- slice_max(sf_condados, taxa_contrib_qtd_churn, n = 3) %>% 
+    rbind(slice_min(sf_condados, taxa_contrib_qtd_churn, n = 3)) %>% 
+    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * taxa_contrib_qtd_churn, 1)}%"))
+
+sf_condados <- sf_condados %>% 
+    mutate(taxa_churn = round(100 * taxa_churn, 1),
+           faixas_taxa_churn = cut(taxa_churn,
+                                   seq(0, ceiling(max(taxa_churn)), 10),
+                                   include.lowest = T, right = F,
+                                   dig.lab = 5, ordered_result = T),
+           taxa_contrib_qtd_churn = round(100 * taxa_contrib_qtd_churn, 1),
+           faixas_taxa_contrib_qtd_churn = cut(taxa_contrib_qtd_churn,
+                                               seq(0, 20, 2.5),
+                                               include.lowest = T, right = F,
+                                               dig.lab = 5, ordered_result = T))
+
 g1_condado <- ggplot() +
-    geom_sf(data = sf_condados, mapping = aes(fill = taxa_churn), size = 0.3) +
+    geom_sf(data = sf_condados, mapping = aes(fill = faixas_taxa_churn), size = 0.3) +
     geom_label_repel(
-        data = head(arrange(sf_condados, desc(taxa_churn)), 3),
-        aes(label = NAME10, geometry = geometry),
+        data = top_6_condados_taxa_churn,
+        aes(label = nome_com_percentual, geometry = geometry),
         size = 2,
         stat = "sf_coordinates",
         min.segment.length = 0) +
-    # scale_fill_distiller(palette = 'YlOrRd', direction = 1, labels = scales::percent_format(accuracy = 1)) +
-    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    scale_fill_viridis_d() +
+    # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = '', title = '% Churn')
+    labs(x = NULL, y = NULL, fill = NULL, title = '% Churn')
 
 
 g2_condado <- ggplot() +
-    geom_sf(data = sf_condados, mapping = aes(fill = taxa_contrib_qtd_churn), size = 0.3) +
+    geom_sf(data = sf_condados, mapping = aes(fill = faixas_taxa_contrib_qtd_churn), size = 0.3) +
     geom_label_repel(
-        data = head(arrange(sf_condados, desc(taxa_contrib_qtd_churn)), 3),
-        aes(label = NAME10, geometry = geometry),
+        data = top_6_condados_taxa_contrib_qtd_churn,
+        aes(label = nome_com_percentual, geometry = geometry),
         size = 2,
         stat = "sf_coordinates",
         min.segment.length = 0) +
-    # scale_fill_distiller(palette = 'YlOrRd', direction = 1, labels = scales::percent_format(accuracy = 1)) +
-    scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+    scale_fill_viridis_d() +
     theme_light() +
     theme(axis.title.y = element_blank(),
           axis.text.y = element_blank(),
@@ -332,14 +368,29 @@ g3_condado <- ggarrange(g1_condado, g2_condado, common.legend = F, legend = 'rig
 ggsave("plots/churn_por_condado.png", plot = g3_condado, width = 9, height = 5)
 
 
-# motivo_churn <- tc %>% 
-#     filter(flg_churn_numeric == 1) %>% 
-#     group_by(county, churn_category) %>% 
-#     summarise(qtd_clientes = n()) %>% 
-#     mutate(tx_clientes = qtd_clientes / sum(qtd_clientes)) %>% 
-#     filter(qtd_clientes == max(qtd_clientes, na.rm = T)) %>% 
-#     summarise(tx_clientes_motivo = sum(tx_clientes, na.rm = T),
-#               churn_category = paste(churn_category, collapse = ' & '))
+motivo_churn <- tc %>%
+    filter(flg_churn_numeric == 1) %>%
+    group_by(county, churn_category) %>%
+    summarise(qtd_clientes = n()) %>%
+    mutate(tx_clientes = qtd_clientes / sum(qtd_clientes)) %>%
+    filter(qtd_clientes == max(qtd_clientes, na.rm = T)) %>%
+    summarise(tx_clientes_motivo = sum(tx_clientes, na.rm = T),
+              tx_clientes_motivo = round(100 * tx_clientes_motivo, 1),
+              churn_category = paste(churn_category, collapse = ' & '))
+
+
+sf_condados <- tigris::counties(state = 'CA', year = 2010) %>% 
+    left_join(motivo_churn, by = c('NAMELSAD10' = 'county'))
+
+
+ggplot() +
+    geom_sf(data = sf_condados, mapping = aes(fill = churn_category), size = 0.3) +
+    scale_fill_brewer(palette = 'Set3') +
+    # scale_fill_viridis_d(option = 'D') +
+    theme_light() +
+    labs(x = NULL, y = NULL, fill = NULL, title = 'Principais motivos de churn')
+
+ggsave('principais_motivos_churn.png', width = 9, height = 5)
 
 # Modelagem
 
