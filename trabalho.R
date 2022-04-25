@@ -165,6 +165,30 @@ tc$churn_category %>% table() %>% prop.table()
 
 ## Graficos
 
+table(tc$contract, tc$churn_category) %>% prop.table() %>% round(3)
+table(tc$payment_method, tc$churn_category) %>% prop.table() %>% round(3)
+table(tc$offer, tc$churn_category) %>% prop.table() %>% round(3)
+
+
+# distribuicao de variaveis interessantes
+ggplot(tc %>% 
+           select(flg_churn_numeric, tenure_in_months, cltv, number_of_referrals) %>% 
+           mutate(churn_descricao = ifelse(flg_churn_numeric == 1, 'Sim', 'Não')) %>% 
+           gather(var, value, -c(flg_churn_numeric, churn_descricao)),
+       aes(churn_descricao, value, fill = churn_descricao)) +
+    geom_boxplot(color = 'black', alpha = 0.7) +
+    scale_fill_viridis_d(option = 'D') +
+    facet_wrap(~ var, scales = 'free_y') +
+    theme_light() +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          legend.position = 'bottom') +
+    labs(x = NULL, y = NULL, fill = 'Clientes perdidos ?')
+
+ggsave("plots/box_plots_condado.png", width = 9, height = 5)
+
+
 
 # qtd_clientes_condado <- tc %>% 
 #     group_by(county) %>% 
