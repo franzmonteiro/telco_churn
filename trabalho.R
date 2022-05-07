@@ -274,9 +274,9 @@ top_6_condados <- top_3_maiores %>%
     mutate(nome_com_percentual = glue("{NAME10}: {round(100 * proporcao_habitantes_clientes, 2)}%"))
 
 sf_condados_3 <- sf_condados_3 %>% 
-    mutate(proporcao_habitantes_clientes = round(100 * proporcao_habitantes_clientes, 1),
+    mutate(proporcao_habitantes_clientes = round(100 * proporcao_habitantes_clientes, 2),
            faixas_proporcao_habitantes_clientes = cut(proporcao_habitantes_clientes,
-                                                      seq(0, 1, 0.01),
+                                                      seq(0, 1, 0.1),
                                                       include.lowest = T, right = F,
                                                       dig.lab = 5, ordered_result = T))
 
