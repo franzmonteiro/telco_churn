@@ -162,13 +162,7 @@ tc$flg_churn %>% table() %>% prop.table()
 tc$customer_status %>% table() %>% prop.table()
 tc$churn_category %>% table() %>% prop.table()
 
-
 ## Graficos
-
-table(tc$contract, tc$churn_category) %>% prop.table() %>% round(3)
-table(tc$payment_method, tc$churn_category) %>% prop.table() %>% round(3)
-table(tc$offer, tc$churn_category) %>% prop.table() %>% round(3)
-
 
 # distribuicao de variaveis interessantes
 ggplot(tc %>% 
@@ -252,11 +246,11 @@ g2_clientes <- ggplot() +
     scale_fill_viridis_d() +
     # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = NULL, title = 'Concentração de clientes')
+    labs(x = NULL, y = NULL, fill = NULL)
 
 # g3_clientes <- ggarrange(g1_clientes, g2_clientes, common.legend = F, legend = 'right', align = 'hv')
 
-ggsave("plots/clientes_condado.png", plot = g2_clientes, width = 9, height = 5)
+ggsave("plots/distribuicao_clientes_por_condado.png", plot = g2_clientes, width = 9, height = 5)
 
 
 
@@ -292,9 +286,9 @@ ggplot() +
     scale_fill_viridis_d() +
     # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = NULL, title = 'Prop. habitantes que foram ou são clientes')
+    labs(x = NULL, y = NULL, fill = NULL)
 
-
+#title = 'Prop. habitantes que foram ou são clientes'
 ggsave("plots/prop_hab_clientes_condado.png", width = 9, height = 5)
 
 prep_motivo_churn <- tc %>% 
@@ -319,10 +313,10 @@ g1_motivo_churn <- ggplot(prep_motivo_churn,
     scale_fill_viridis_d() +
     labs(x = NULL, y = NULL, fill = NULL) +
     coord_flip() +
-    theme_light() +
-    labs(title = 'Distribuição do motivo de churn')
+    theme_light()
+    # labs(title = 'Distribuição do motivo de churn')
 
-ggsave("plots/motivo_churn_geral.png", plot = g1_motivo_churn, width = 10, height = 6)
+ggsave("plots/distribuicao_motivo_churn.png", plot = g1_motivo_churn, width = 10, height = 6)
 
 
 txs_churn_condado <- tc %>% 
@@ -368,8 +362,10 @@ g1_condado <- ggplot() +
     scale_fill_viridis_d() +
     # scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = NULL, title = '% Churn')
+    labs(x = NULL, y = NULL, fill = NULL)
+# title = '% Churn'
 
+ggsave("plots/taxa_churn_por_condado.png", plot = g1_condado, width = 9, height = 5)
 
 g2_condado <- ggplot() +
     geom_sf(data = sf_condados, mapping = aes(fill = faixas_taxa_contrib_qtd_churn), size = 0.3) +
@@ -381,40 +377,64 @@ g2_condado <- ggplot() +
         min.segment.length = 0) +
     scale_fill_viridis_d() +
     theme_light() +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank()) +
-    labs(x = NULL, y = NULL, fill = '',
-         title = 'Concentração do churn')
+    # theme(axis.title.y = element_blank(),
+    #       axis.text.y = element_blank(),
+    #       axis.ticks.y = element_blank()) +
+    labs(x = NULL, y = NULL, fill = NULL)
+# title = 'Concentração do churn'
 
-g3_condado <- ggarrange(g1_condado, g2_condado, common.legend = F, legend = 'right', align = 'hv')
+# g3_condado <- ggarrange(g1_condado, g2_condado, common.legend = F, legend = 'right', align = 'hv')
 
-ggsave("plots/churn_por_condado.png", plot = g3_condado, width = 9, height = 5)
+ggsave("plots/distribuicao_churn_por_condado.png", plot = g2_condado, width = 9, height = 5)
 
 
 motivo_churn <- tc %>%
     filter(flg_churn_numeric == 1) %>%
     group_by(county, churn_category) %>%
     summarise(qtd_clientes = n()) %>%
-    mutate(tx_clientes = qtd_clientes / sum(qtd_clientes)) %>%
+    mutate(tx_clientes = qtd_clientes / sum(qtd_clientes))
+
+ggplot(motivo_churn, aes(county, tx_clientes, fill = churn_category)) +
+    geom_col() +
+    scale_fill_viridis_d() +
+    coord_flip()
+
+principais_motivos_churn <- motivo_churn %>% 
     filter(qtd_clientes == max(qtd_clientes, na.rm = T)) %>%
     summarise(tx_clientes_motivo = sum(tx_clientes, na.rm = T),
-              tx_clientes_motivo = round(100 * tx_clientes_motivo, 1),
-              churn_category = paste(churn_category, collapse = ' & '))
+              churn_category = paste(churn_category, collapse = ' & ')) %>% 
+    mutate(tx_clientes_motivo = round(100 * tx_clientes_motivo, 1),
+           principais_motivos_com_percentual = glue('{churn_category}: {tx_clientes_motivo}'))
+
+
+write_csv(principais_motivos_churn %>% 
+              mutate(county = str_remove(county, ' County')) %>% 
+              select(county, churn_category, tx_clientes_motivo) %>% 
+              arrange(churn_category), 'csvs/tabela_principais_motivos_churn.csv')
 
 
 sf_condados <- tigris::counties(state = 'CA', year = 2010) %>% 
-    left_join(motivo_churn, by = c('NAMELSAD10' = 'county'))
+    left_join(principais_motivos_churn, by = c('NAMELSAD10' = 'county'))
+
+# tmp <- sf_condados %>% 
+#     sf::st_drop_geometry()
 
 
 ggplot() +
     geom_sf(data = sf_condados, mapping = aes(fill = churn_category), size = 0.3) +
+    # geom_label_repel(
+    #     data = sf_condados,
+    #     aes(label = tx_clientes_motivo, geometry = geometry),
+    #     size = 2,
+    #     stat = "sf_coordinates",
+    #     min.segment.length = 0) +
     scale_fill_brewer(palette = 'Set3') +
     # scale_fill_viridis_d(option = 'D') +
     theme_light() +
-    labs(x = NULL, y = NULL, fill = NULL, title = 'Principais motivos de churn')
+    labs(x = NULL, y = NULL, fill = NULL)
+# title = 'Principais motivos de churn'
 
-ggsave('principais_motivos_churn.png', width = 9, height = 5)
+ggsave('plots/principais_motivos_churn_por_condado.png', width = 9, height = 5)
 
 # Modelagem
 
