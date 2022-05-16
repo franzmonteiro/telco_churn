@@ -182,7 +182,7 @@ quantile(filter(tc, flg_churn_numeric == 1)$satisfaction_score,
 
 # distribuicao de variaveis interessantes
 ggplot(tc %>% 
-           select(flg_churn_numeric, satisfaction_score, tenure_in_months, cltv, number_of_referrals) %>% 
+           select(flg_churn_numeric, tenure_in_months, cltv, number_of_referrals) %>% 
            mutate(churn_descricao = ifelse(flg_churn_numeric == 1, 'Sim', 'Não')) %>% 
            gather(var, value, -c(flg_churn_numeric, churn_descricao)),
        aes(churn_descricao, value, fill = churn_descricao)) +
@@ -334,7 +334,9 @@ g1_motivo_churn <- ggplot(prep_motivo_churn,
     scale_fill_viridis_d() +
     labs(x = NULL, y = NULL, fill = NULL) +
     coord_flip() +
-    theme_light()
+    theme_light() +
+    labs(x = 'Motivo',
+         y = 'Percentual de concentração do churn')
     # labs(title = 'Distribuição do motivo de churn')
 
 ggsave("plots/distribuicao_motivo_churn.png", plot = g1_motivo_churn, width = 10, height = 6)
@@ -465,17 +467,18 @@ glimpse(tc)
 tc_std <- tc %>% 
     select(-c(customer_id, 
               city, latitude, longitude,
-              satisfaction_score, customer_status, churn_category, churn_reason, flg_churn_numeric)) %>% 
+              # satisfaction_score, 
+              customer_status, churn_category, churn_reason, flg_churn_numeric)) %>% 
     select(-matches('zip_code')) %>% 
     mutate(across(where(is.numeric), ~ (.x - mean(.x)) / sd(.x)))
 
-polinomios <- tc_std %>% 
-    select(where(is.numeric)) %>%
-    select(-qtd_servicos_principais) %>% 
-    colnames() %>% 
-    as_tibble() %>% 
-    rename(var = 1) %>% 
-    mutate(termo = glue("poly({var}, 3)"))
+# polinomios <- tc_std %>% 
+#     select(where(is.numeric)) %>%
+#     select(-qtd_servicos_principais) %>% 
+#     colnames() %>% 
+#     as_tibble() %>% 
+#     rename(var = 1) %>% 
+#     mutate(termo = glue("poly({var}, 3)"))
 
 
 ## Amostragem
@@ -485,29 +488,29 @@ tc_train <- tc_std[train_idx,]
 tc_test <- tc_std[-train_idx,]
 
 dim(tc_train)
-formula_parte_1 <- tc_train %>% 
-    select(-c(flg_churn, county)) %>%
-    colnames() %>% 
-    as_tibble() %>% 
-    rename(var = 1) %>% 
-    mutate(var = ifelse(var %in% c('age',
-                                   'number_of_dependents',
-                                   'number_of_referrals',
-                                   'tenure_in_months',
-                                   'qtd_servicos_adicionais',
-                                   'qtd_streamings',
-                                   'cltv'), glue("poly({var}, 3)"), var))
-
-formula_parte_1 <- formula_parte_1$var %>% paste(collapse = ' + ')
-formula_parte_1 <- glue("( {formula_parte_1} ) ^ 2")
-formula_final <- glue("flg_churn ~ county + {formula_parte_1}")
+# formula_parte_1 <- tc_train %>% 
+#     select(-c(flg_churn, county)) %>%
+#     colnames() %>% 
+#     as_tibble() %>% 
+#     rename(var = 1) %>% 
+#     mutate(var = ifelse(var %in% c('age',
+#                                    'number_of_dependents',
+#                                    'number_of_referrals',
+#                                    'tenure_in_months',
+#                                    'qtd_servicos_adicionais',
+#                                    'qtd_streamings',
+#                                    'cltv'), glue("poly({var}, 3)"), var))
+# 
+# formula_parte_1 <- formula_parte_1$var %>% paste(collapse = ' + ')
+# formula_parte_1 <- glue("( {formula_parte_1} ) ^ 2")
+# formula_final <- glue("flg_churn ~ county + {formula_parte_1}")
 
 ## Treinamento
 modelo_vazio <- glm(flg_churn ~ 1,
                     data = tc_train,
                     family = binomial)
 
-modelo_tudo <- glm(as.formula(formula_final),
+modelo_tudo <- glm(flg_churn ~ .^2,
                    data = tc_train,
                    family = binomial)
 
@@ -524,10 +527,10 @@ glmm_vazio <- glmmTMB(flg_churn ~ 1 + (1 | county),
                       family = binomial,
                       REML = T)
 
-formula_glmm <- glue("flg_churn ~ {formula_parte_1} + (1 | county)")
+# formula_glmm <- glue("flg_churn ~ {formula_parte_1} + (1 | county)")
 
 
-glmm_step <- buildglmmTMB(as.formula(formula_str),
+glmm_step <- buildglmmTMB(flg_churn ~ ,
                           data = tc_train,
                           family = binomial,
                           buildmerControl = buildmerControl(crit = 'AIC', REML = T))
