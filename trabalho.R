@@ -161,18 +161,34 @@ rm(list = c('tc_demographics', 'tc_location', 'tc_population', 'tc_services', 't
 tc$flg_churn %>% table() %>% prop.table()
 tc$customer_status %>% table() %>% prop.table()
 tc$churn_category %>% table() %>% prop.table()
+tc$churn_reason %>% table() %>% prop.table()
+
+tc %>% 
+    group_by(satisfaction_score, flg_churn) %>% 
+    summarise(qtd_clientes = n()) %>% 
+    summarise(taxa_churn = sum(ifelse(flg_churn == 1, qtd_clientes, 0)) / sum(qtd_clientes),
+              qtd_clientes = sum(qtd_clientes)) %>% 
+    select(satisfaction_score, qtd_clientes, taxa_churn) %>% 
+    mutate(taxa_churn = round(100 * taxa_churn, 1)) %>% 
+    write_csv('csvs/taxa_churn_por_satisfaction_score.csv')
+
+quantile(filter(tc, flg_churn_numeric == 1)$number_of_referrals,
+         seq(0, 1, .05))
+
+quantile(filter(tc, flg_churn_numeric == 1)$satisfaction_score,
+         seq(0, 1, .1))
 
 ## Graficos
 
 # distribuicao de variaveis interessantes
 ggplot(tc %>% 
-           select(flg_churn_numeric, tenure_in_months, cltv, number_of_referrals) %>% 
+           select(flg_churn_numeric, satisfaction_score, tenure_in_months, cltv, number_of_referrals) %>% 
            mutate(churn_descricao = ifelse(flg_churn_numeric == 1, 'Sim', 'Não')) %>% 
            gather(var, value, -c(flg_churn_numeric, churn_descricao)),
        aes(churn_descricao, value, fill = churn_descricao)) +
     geom_boxplot(color = 'black', alpha = 0.7) +
     scale_fill_viridis_d(option = 'D') +
-    facet_wrap(~ var, scales = 'free_y') +
+    facet_wrap(~ var, scales = 'free_y', nrow = 1) +
     theme_light() +
     theme(axis.title.x = element_blank(),
           axis.text.x = element_blank(),
@@ -273,6 +289,11 @@ sf_condados_3 <- sf_condados_3 %>%
                                                       seq(0, 1, 0.1),
                                                       include.lowest = T, right = F,
                                                       dig.lab = 5, ordered_result = T))
+
+tmp <- sf_condados_3 %>% 
+    sf::st_drop_geometry() %>% 
+    filter(NAME10 %in% c("Sierra", "Alpine", "Trinity"))
+
 
 ggplot() +
     geom_sf(data = sf_condados_3,
