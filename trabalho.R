@@ -1,10 +1,9 @@
-library(sf) #ok
 library(tigris) #ok
 library(tidyverse) # ok
 library(stringr) #ok
 library(glue) #ok
 library(readxl) #ok
-library(ggpubr) #ok
+# library(ggpubr) #ok
 library(ggrepel) #ok
 library(caret) # ok
 library(glmmTMB) #ok
