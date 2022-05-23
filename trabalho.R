@@ -1,18 +1,19 @@
-library(sf)
-library(tigris)
+library(sf) #ok
+library(tigris) #ok
 library(tidyverse) # ok
-library(stringr)
-library(glue)
-library(readxl)
-library(ggpubr)
-library(ggrepel)
+library(stringr) #ok
+library(glue) #ok
+library(readxl) #ok
+library(ggpubr) #ok
+library(ggrepel) #ok
 library(caret) # ok
-library(glmmTMB) # ok
-library(lmtest) # ok
-library(tidycensus)
-library(zipcodeR)
+library(glmmTMB) #ok
+library(lmtest) #ok
+library(tidycensus) #ok
+library(zipcodeR) #ok
 # library(StepReg)
-library(buildmer)
+library(buildmer) #ok
+library(pROC) #ok
 options(tigris_use_cache = T)
 
 read_xlsx_custom <- function(file_name) {
