@@ -100,13 +100,13 @@ zip_county <- zipcodeR::zip_code_db %>%
     select(zipcode, county)
 
 counties_stats <- tigris::counties(state = 'CA', year = 2010) %>% 
-    st_drop_geometry() %>%
+    sf::st_drop_geometry() %>%
     select(NAMELSAD10, ALAND10) %>% 
     rename(county = 1,
            condado_area_terra_m2 = 2)
 
 zip_code_stats <- tigris::zctas(state = 'CA', year = 2010) %>% 
-    st_drop_geometry() %>%
+    sf::st_drop_geometry() %>%
     select(ZCTA5CE10, ALAND10) %>% 
     rename(zip_code = 1,
            zip_code_area_terra_m2 = 2)
@@ -178,11 +178,24 @@ quantile(filter(tc, flg_churn_numeric == 1)$number_of_referrals,
 quantile(filter(tc, flg_churn_numeric == 1)$satisfaction_score,
          seq(0, 1, .1))
 
+quantile(filter(tc, flg_churn_numeric == 1)$tenure_in_months,
+         seq(0, 1, .1))
+
+tc %>%
+    group_by(flg_churn) %>% 
+    summarise(across(all_of(c("tenure_in_months",
+                              "number_of_referrals",
+                              "cltv")),
+              list(min = ~ min(.x, na.rm = T), max = ~ max(.x, na.rm = T),
+                   mean = ~ mean(.x, na.rm = T), sd = ~ sd(.x, na.rm = T)),
+              .names = "{.fn}_{.col}")) %>% 
+    View()
+
 ## Graficos
 
 # distribuicao de variaveis interessantes
 ggplot(tc %>% 
-           select(flg_churn_numeric, tenure_in_months, cltv, number_of_referrals) %>% 
+           select(flg_churn_numeric, tenure_in_months, number_of_referrals) %>% 
            mutate(churn_descricao = ifelse(flg_churn_numeric == 1, 'Sim', 'Não')) %>% 
            gather(var, value, -c(flg_churn_numeric, churn_descricao)),
        aes(churn_descricao, value, fill = churn_descricao)) +
@@ -335,8 +348,9 @@ g1_motivo_churn <- ggplot(prep_motivo_churn,
     labs(x = NULL, y = NULL, fill = NULL) +
     coord_flip() +
     theme_light() +
-    labs(x = 'Motivo',
-         y = 'Percentual de concentração do churn')
+    labs(x = 'Motivo específico',
+         y = 'Percentual de concentração do churn',
+         fill = 'Motivo geral')
     # labs(title = 'Distribuição do motivo de churn')
 
 ggsave("plots/distribuicao_motivo_churn.png", plot = g1_motivo_churn, width = 10, height = 6)
