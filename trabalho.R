@@ -330,6 +330,32 @@ prep_motivo_churn <- tc %>%
     group_by(churn_category, churn_reason) %>% 
     summarise(qtd_clientes = n()) %>% 
     ungroup() %>% 
+    mutate(churn_category = case_when(churn_category == 'Attitude' ~ 'Atitude',
+                                      churn_category == 'Competitor' ~ 'Concorrente',
+                                      churn_category == 'Dissatisfaction' ~ 'Insatisfação',
+                                      churn_category == 'Other' ~ 'Outro',
+                                      churn_category == 'Price' ~ 'Preço',
+                                      T ~ 'Não identificado'),
+           churn_reason = case_when(churn_reason == "Attitude of service provider" ~ "Atitude do prestador de serviço",
+                                    churn_reason == "Attitude of support person" ~ "Atitude de pessoa do suporte",
+                                    churn_reason == "Competitor had better devices" ~ "Concorrente tinha melhores dispositivos",
+                                    churn_reason == "Competitor made better offer" ~ "Concorrente fez melhor oferta",
+                                    churn_reason == "Competitor offered higher download speeds" ~ "Concorrente ofereceu maiores velocidades de download",
+                                    churn_reason == "Competitor offered more data" ~ "Concorrente ofereceu mais dados",
+                                    churn_reason == "Lack of self-service on Website" ~ "Falta de autoatendimento no website",
+                                    churn_reason == "Limited range of services" ~ "Conjunto limitado de serviços",
+                                    churn_reason == "Network reliability" ~ "Confiabilidade da rede",
+                                    churn_reason == "Poor expertise of online support" ~ "Baixa competência do suporte online",
+                                    churn_reason == "Poor expertise of phone support" ~ "Baixa competência do suporte telefônico",
+                                    churn_reason == "Product dissatisfaction" ~ "Insatisfação com o produto",
+                                    churn_reason == "Service dissatisfaction" ~ "Insatisfação com o serviço",
+                                    churn_reason == "Deceased" ~ "Falecido",
+                                    churn_reason == "Don't know" ~ "Não identificado",
+                                    churn_reason == "Moved" ~ "Mudou-se",
+                                    churn_reason == "Extra data charges" ~ "Cobranças adicionais por dados",
+                                    churn_reason == "Lack of affordable download/upload speed" ~ "Ausência de velocidade de download/upload econômica",
+                                    churn_reason == "Long distance charges" ~ "Cobranças por chamadas de longa distância",
+                                    churn_reason == "Price too high" ~ "Preço muito elevado")) %>% # Traducao pra portugues
     mutate(tx_contrib_clientes_reason = qtd_clientes / sum(qtd_clientes),
            tx_contrib_clientes_reason = round(tx_contrib_clientes_reason * 100, 1)) %>% 
     group_by(churn_category) %>% 
