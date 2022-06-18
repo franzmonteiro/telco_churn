@@ -254,7 +254,9 @@ top_3_maiores <- slice_max(sf_condados_2, tx_contrib_clientes, n = 3)
 top_3_menores <- slice_min(sf_condados_2, tx_contrib_clientes, n = 3)
 top_6_condados <- top_3_maiores %>% 
     rbind(top_3_menores) %>% 
-    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * tx_contrib_clientes, 1)}%"))
+    mutate(rounded_tx_contrib_clientes = round(100 * tx_contrib_clientes, 1),
+           rounded_tx_contrib_clientes = str_replace(paste(rounded_tx_contrib_clientes), '[.]', ','),
+           nome_com_percentual = glue("{NAME10}: {rounded_tx_contrib_clientes}%"))
 
 sf_condados_2 <- sf_condados_2 %>% 
     mutate(tx_contrib_clientes = round(100 * tx_contrib_clientes, 1),
@@ -294,7 +296,9 @@ top_3_maiores <- slice_max(sf_condados_3, proporcao_habitantes_clientes, n = 3)
 top_3_menores <- slice_min(sf_condados_3, proporcao_habitantes_clientes, n = 3)
 top_6_condados <- top_3_maiores %>% 
     rbind(top_3_menores) %>% 
-    mutate(nome_com_percentual = glue("{NAME10}: {round(100 * proporcao_habitantes_clientes, 2)}%"))
+    mutate(rounded_proporcao_habitantes_clientes = round(100 * proporcao_habitantes_clientes, 2),
+           # rounded_proporcao_habitantes_clientes = str_replace(paste(rounded_proporcao_habitantes_clientes), '[.]', ','),
+           nome_com_percentual = glue("{NAME10}: {rounded_proporcao_habitantes_clientes}%"))
 
 sf_condados_3 <- sf_condados_3 %>% 
     mutate(proporcao_habitantes_clientes = round(100 * proporcao_habitantes_clientes, 2),
@@ -452,6 +456,12 @@ ggsave("plots/distribuicao_churn_por_condado.png", plot = g2_condado, width = 9,
 
 
 motivo_churn <- tc %>%
+    mutate(churn_category = case_when(churn_category == 'Attitude' ~ 'Atitude',
+                                      churn_category == 'Competitor' ~ 'Concorrente',
+                                      churn_category == 'Dissatisfaction' ~ 'Insatisfação',
+                                      churn_category == 'Other' ~ 'Outro',
+                                      churn_category == 'Price' ~ 'Preço',
+                                      T ~ 'Não identificado')) %>% 
     filter(flg_churn_numeric == 1) %>%
     group_by(county, churn_category) %>%
     summarise(qtd_clientes = n()) %>%
@@ -479,7 +489,7 @@ write_csv(principais_motivos_churn %>%
 sf_condados <- tigris::counties(state = 'CA', year = 2010) %>% 
     left_join(principais_motivos_churn, by = c('NAMELSAD10' = 'county'))
 
-# tmp <- sf_condados %>% 
+# tmp <- sf_condados %>%
 #     sf::st_drop_geometry()
 
 
