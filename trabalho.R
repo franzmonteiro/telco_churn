@@ -339,7 +339,7 @@ prep_motivo_churn <- tc %>%
            churn_reason = case_when(churn_reason == "Attitude of service provider" ~ "Atitude do prestador de serviço",
                                     churn_reason == "Attitude of support person" ~ "Atitude de pessoa do suporte",
                                     churn_reason == "Competitor had better devices" ~ "Concorrente tinha melhores dispositivos",
-                                    churn_reason == "Competitor made better offer" ~ "Concorrente fez melhor oferta",
+                                    churn_reason == "Competitor made better offer" ~ "Concorrente fez oferta melhor",
                                     churn_reason == "Competitor offered higher download speeds" ~ "Concorrente ofereceu maiores velocidades de download",
                                     churn_reason == "Competitor offered more data" ~ "Concorrente ofereceu mais dados",
                                     churn_reason == "Lack of self-service on Website" ~ "Falta de autoatendimento no website",
@@ -379,7 +379,7 @@ g1_motivo_churn <- ggplot(prep_motivo_churn,
          fill = 'Motivo geral')
     # labs(title = 'Distribuição do motivo de churn')
 
-ggsave("plots/distribuicao_motivo_churn.png", plot = g1_motivo_churn, width = 10, height = 6)
+ggsave("plots/distribuicao_motivo_churn.png", plot = g1_motivo_churn, width = 12, height = 7)
 
 
 txs_churn_condado <- tc %>% 
