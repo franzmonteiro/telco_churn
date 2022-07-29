@@ -279,7 +279,7 @@ g2_clientes <- ggplot() +
     theme_light() +
     labs(x = NULL, y = NULL, fill = NULL)
 
-# g3_clientes <- ggarrange(g1_clientes, g2_clientes, common.legend = F, legend = 'right', align = 'hv')
+# g3_clientes <- ggpubr::ggarrange(g1_clientes, g2_clientes, common.legend = F, legend = 'right', align = 'hv')
 
 ggsave("plots/distribuicao_clientes_por_condado.png", plot = g2_clientes, width = 9, height = 5)
 
@@ -538,20 +538,20 @@ tc_train <- tc_std[train_idx,]
 tc_test <- tc_std[-train_idx,]
 
 dim(tc_train)
-# formula_parte_1 <- tc_train %>% 
-#     select(-c(flg_churn, county)) %>%
-#     colnames() %>% 
-#     as_tibble() %>% 
-#     rename(var = 1) %>% 
-#     mutate(var = ifelse(var %in% c('age',
-#                                    'number_of_dependents',
-#                                    'number_of_referrals',
-#                                    'tenure_in_months',
-#                                    'qtd_servicos_adicionais',
-#                                    'qtd_streamings',
-#                                    'cltv'), glue("poly({var}, 3)"), var))
-# 
-# formula_parte_1 <- formula_parte_1$var %>% paste(collapse = ' + ')
+formula_parte_1 <- tc_train %>%
+    select(-c(flg_churn, county)) %>%
+    colnames() %>%
+    as_tibble() %>%
+    rename(var = 1)
+    # mutate(var = ifelse(var %in% c('age',
+    #                                'number_of_dependents',
+    #                                'number_of_referrals',
+    #                                'tenure_in_months',
+    #                                'qtd_servicos_adicionais',
+    #                                'qtd_streamings',
+    #                                'cltv'), glue("poly({var}, 3)"), var))
+
+formula_parte_1 <- formula_parte_1$var %>% paste(collapse = ' + ')
 # formula_parte_1 <- glue("( {formula_parte_1} ) ^ 2")
 # formula_final <- glue("flg_churn ~ county + {formula_parte_1}")
 
@@ -560,9 +560,13 @@ modelo_vazio <- glm(flg_churn ~ 1,
                     data = tc_train,
                     family = binomial)
 
-modelo_tudo <- glm(flg_churn ~ .^2,
+modelo_tudo <- glm(flg_churn ~ .,
                    data = tc_train,
                    family = binomial)
+
+# modelo_tudo <- glm(flg_churn ~ .^2,
+#                    data = tc_train,
+#                    family = binomial)
 
 modelo_step <- MASS::stepAIC(modelo_vazio,
                              direction = 'both',
@@ -577,10 +581,15 @@ glmm_vazio <- glmmTMB(flg_churn ~ 1 + (1 | county),
                       family = binomial,
                       REML = T)
 
-# formula_glmm <- glue("flg_churn ~ {formula_parte_1} + (1 | county)")
+formula_glmm <- glue("flg_churn ~ {formula_parte_1} + (1 | county)")
 
-
-glmm_step <- buildglmmTMB(flg_churn ~ ,
+glmm_step <- buildglmmTMB(as.formula(formula_glmm),
                           data = tc_train,
                           family = binomial,
                           buildmerControl = buildmerControl(crit = 'AIC', REML = T))
+
+summary(glmm_step)
+
+modelo_step$aic
+glmm_step@model$aic
+
