@@ -1,0 +1,11 @@
+v1;v2;correlacao
+valor_cobrancas_extras;total_long_distance_charges;1
+valor_cobranca_geral;total_charges;0.97
+valor_cobranca_geral;tenure_in_months;0.85
+qtd_servicos_principais;monthly_charge;0.84
+total_charges;tenure_in_months;0.83
+valor_cobranca_geral;total_long_distance_charges;0.78
+valor_cobrancas_extras;valor_cobranca_geral;0.78
+tx_contrib_cobrancas_extras_cobranca_geral;avg_monthly_long_distance_charges;0.74
+condado_tx_habitantes_menor_18_anos;condado_idade_mediana_habitantes;-0.72
+qtd_streamings;monthly_charge;0.69
