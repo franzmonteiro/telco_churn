@@ -11,7 +11,11 @@ library(zipcodeR) #ok
 library(buildmer) #ok
 library(mgcv)
 library(pROC) #ok
+library(randomForest)
+library(rpart)
+library(fastDummies)
 options(tigris_use_cache = T)
+DIRETORIO_MODELOS <- glue('modelos/{hoje}/', hoje = format(Sys.time(), '%d-%m-%Y'))
 
 read_xlsx_custom <- function(file_name) {
     dados <- read_xlsx(file_name) %>% 
@@ -143,8 +147,7 @@ tc <- tc_demographics %>%
            across(matches('flg_'), as.factor),
            across(where(is.character), as.factor),
            satisfaction_score = as.factor(satisfaction_score),
-           flg_churn_numeric = ifelse(flg_churn == '1', 1, 0)) %>% 
-    select(-c(flg_internet_service))
+           flg_churn_numeric = ifelse(flg_churn == '1', 1, 0))
 
 # colnames(tc) %>% paste(collapse = '\n') %>% cat()
 
@@ -155,142 +158,215 @@ rm(list = c('tc_demographics', 'tc_location', 'tc_population', 'tc_services', 't
 
 # Modelagem
 
-get_sens_spec <- function(modelo) {
-    
-    previsoes <- ROCR::prediction(predict(modelo, tc_test, type = 'response'),
-                                  tc_test$flg_churn)
-    
-    sensitividade <- ROCR::performance(previsoes, measure = 'sens')@y.values %>% unlist()
-    especificidade <- ROCR::performance(previsoes, measure = 'spec')@y.values %>% unlist()
-    cutoffs <- ROCR::performance(previsoes, measure = 'sens')@x.values %>% unlist()
-    
-    resultado <- data.frame(sensitividade = sensitividade,
-                            especificidade = especificidade,
-                            cutoffs = cutoffs)
-    
-    return(resultado)
-}
-
-plot_spec_sens <- function(dados_plotagem) {
-    g1 <- ggplot(dados_plotagem, aes(cutoffs, value, color = var)) +
-        geom_line() +
-        scale_color_viridis_d() +
-        theme_light() +
-        labs(x = "Ponto de corte", y = NULL,
-             color = NULL)
-    
-    return(g1)
-}
-
-# retorna tres estatisticas do modelo
-# Acuracia; Sensitividade e especificidade
-get_model_stats <- function(modelo, cutoff) {
-    
-    tmp_model_stats <- confusionMatrix(as.factor(ifelse(predict(modelo, tc_test, type = 'response') >= cutoff, 1, 0)),
-                                       tc_test$flg_churn)
-    
-    model_stats <- tibble(`Acurácia` = tmp_model_stats$overall[['Accuracy']],
-                          Sensitividade = tmp_model_stats$byClass[['Sensitivity']],
-                          Especificidade = tmp_model_stats$byClass[['Specificity']])
-    
-    tmp_previsoes_rocr <- ROCR::prediction(as.double(predict(modelo, tc_test, type = 'response')), ifelse(tc_test$flg_churn == '1', 1, 0))
-    
-    area_sob_curva <- ROCR::performance(tmp_previsoes_rocr, 'auc')@y.values %>%
-        unlist()
-    
-    model_stats <- model_stats %>% 
-        mutate(AUC = area_sob_curva)
-    
-    return(model_stats)
-}
-
-## Padronizacao das variaveis numericas
-# glimpse(tc)
+# get_sens_spec <- function(modelo, cutoff = 0.5) {
+#     
+#     previsoes <- ROCR::prediction(as.double(predict(modelo, tc_test, type = 'response')),
+#                                   tc_test$flg_churn)
+#     
+#     # previsoes <- ROCR::prediction(as.double(predict(modelo, tc_test, type = 'response')),
+#     #                               ifelse(tc_test$flg_churn == '1', 1, 0))
+#     
+#     sensitividade <- ROCR::performance(previsoes, measure = 'sens')@y.values %>% unlist()
+#     especificidade <- ROCR::performance(previsoes, measure = 'spec')@y.values %>% unlist()
+#     cutoffs <- ROCR::performance(previsoes, measure = 'sens')@x.values %>% unlist()
+#     
+#     resultado <- data.frame(sensitividade = sensitividade,
+#                             especificidade = especificidade,
+#                             cutoffs = cutoffs)
+#     
+#     return(resultado)
+# }
 # 
-# tc %>% 
-#     select(where(is.numeric)) %>% 
-#     glimpse()
+# plot_spec_sens <- function(dados_plotagem) {
+#     g1 <- ggplot(dados_plotagem, aes(cutoffs, value, color = var)) +
+#         geom_line() +
+#         scale_color_brewer(palette = 'Set3') +
+#         # scale_color_viridis_d() +
+#         theme_light() +
+#         labs(x = "Ponto de corte", y = NULL,
+#              color = NULL)
+#     
+#     return(g1)
+# }
 # 
-# tc_std <- tc %>% 
-#     select(-c(customer_id, 
-#               city, latitude, longitude,
-#               # satisfaction_score,
-#               customer_status, churn_category, churn_reason, flg_churn_numeric)) %>% 
-#     select(-matches('zip_code')) %>% 
-#     mutate(across(where(is.numeric) & !matches('tx_'),
-#                   ~ (.x - mean(.x)) / sd(.x)))
+# # retorna tres estatisticas do modelo
+# # Acuracia; Sensitividade e especificidade
+# get_model_stats <- function(modelo, cutoff = 0.5) {
+#     
+#     tmp_model_stats <- confusionMatrix(as.factor(ifelse(predict(modelo, tc_test, type = 'response') >= cutoff, 1, 0)),
+#                                        tc_test$flg_churn,
+#                                        positive = '1',
+#                                        mode = 'sens_spec')
+#     
+#     model_stats <- tibble(`Ponto de corte` = cutoff,
+#                           `Acurácia` = tmp_model_stats$overall[['Accuracy']],
+#                           Sensitividade = tmp_model_stats$byClass[['Sensitivity']],
+#                           Especificidade = tmp_model_stats$byClass[['Specificity']],
+#                           AIC = modelo$aic)
+#     
+#     tmp_previsoes_rocr <- ROCR::prediction(as.double(predict(modelo, tc_test, type = 'response')),
+#                                            tc_test$flg_churn)
+#     
+#     area_sob_curva <- ROCR::performance(tmp_previsoes_rocr, 'auc')@y.values %>%
+#         unlist()
+#     
+#     model_stats <- model_stats %>% 
+#         mutate(AUC = area_sob_curva)
+#     
+#     return(model_stats)
+# }
 
 tc_mod <- tc %>% 
     select(-c(customer_id, 
               city, latitude, longitude,
-              # satisfaction_score,
               customer_status, churn_category, churn_reason, flg_churn_numeric)) %>% 
     select(-matches('zip_code'))
 
+# verifica colunas com valores faltantes
+tc_mod %>%
+    summarise(across(everything(), ~ sum(is.na(.x)))) %>% 
+    gather(var, value, everything()) %>% 
+    arrange(desc(value))
+
+variaveis_dummizar <- tc_mod %>%
+    select(!where(is.double)) %>%
+    select(-matches('flg_')) %>%
+    colnames()
+
+tc_dummies <- dummy_columns(.data = tc_mod,
+                            select_columns = variaveis_dummizar,
+                            remove_selected_columns = TRUE,
+                            remove_first_dummy = TRUE) %>%
+    rename_with(~ str_replace_all(.x, ' ', '_'), matches(' '))
+
 ## Amostragem
 set.seed(3)
-train_idx <- createDataPartition(tc_mod$flg_churn, p = .7, list = F)
+train_idx <- createDataPartition(tc_mod$flg_churn, p = .8, list = F)
 tc_train <- tc_mod[train_idx,]
 tc_test <- tc_mod[-train_idx,]
 
 dim(tc_train)
 
+saveRDS(tc_train, 'csvs/tc_train.rds')
+saveRDS(tc_test, 'csvs/tc_test.rds')
+
+## Dummies
+set.seed(3)
+dummies_train_idx <- createDataPartition(tc_dummies$flg_churn, p = .8, list = F)
+dummies_tc_train <- tc_dummies[train_idx,]
+dummies_tc_test <- tc_dummies[-train_idx,]
+
+dim(dummies_tc_train)
+
+saveRDS(dummies_tc_train, 'csvs/dummies_tc_train.rds')
+saveRDS(dummies_tc_test, 'csvs/dummies_tc_test.rds')
+
+treinar_glmm <- function(criterio, restricted = TRUE) {
+    efeitos_fixos <- tc_train %>%
+        select(-c(flg_churn, county)) %>%
+        colnames() %>%
+        paste(collapse = ' + ')
+    
+    modelo <- buildglmmTMB(formula = as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | county)")),
+                           data = tc_train,
+                           family = binomial,
+                           buildmerControl = buildmerControl(crit = criterio,
+                                                             elim = criterio,
+                                                             REML = restricted))
+    
+    saveRDS(modelo,
+            glue('{DIRETORIO_MODELOS}/glmm_step_{criterio}{reml}.rds',
+                 criterio = str_to_lower(criterio),
+                 reml = ifelse(restricted, '_reml', '')))
+    
+    return(TRUE)
+}
+
+
 ## Treinamento
+modelo_arvore <- rpart(flg_churn ~ ., data = tc_train)
+saveRDS(modelo_arvore, paste0(DIRETORIO_MODELOS, 'modelo_arvore.rds'))
+# modelo_arvore <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_arvore.rds'))
+
+modelo_rf <- randomForest(flg_churn ~ .,
+                          data = dummies_tc_train,
+                          ntree = 500,
+                          importance = TRUE)
+saveRDS(modelo_rf, paste0(DIRETORIO_MODELOS, 'modelo_rf.rds'))
+# modelo_rf <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_rf.rds'))
+
 modelo_vazio <- glm(flg_churn ~ 1,
                     data = tc_train,
-                    # data = na.omit(tc_train),
                     na.action = na.omit,
                     family = binomial)
+saveRDS(modelo_vazio, paste0(DIRETORIO_MODELOS, 'modelo_vazio.rds'))
+# modelo_vazio <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_vazio.rds'))
+
 
 modelo_tudo <- glm(flg_churn ~ .,
                    data = tc_train,
                    na.action = na.omit,
                    family = binomial)
+saveRDS(modelo_tudo, paste0(DIRETORIO_MODELOS, 'modelo_tudo.rds'))
+# modelo_tudo <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_tudo.rds'))
 
-# modelo_tudo <- glm(flg_churn ~ .^2,
-#                    data = tc_train,
-#                    family = binomial)
+modelo_step_forward <- MASS::stepAIC(modelo_vazio,
+                                     direction = 'forward',
+                                     scope = list(lower = modelo_vazio, upper = modelo_tudo),
+                                     trace = 1)
+saveRDS(modelo_step_forward, paste0(DIRETORIO_MODELOS, 'modelo_step_forward.rds'))
+# modelo_step_forward <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_step_forward.rds'))
 
-# summary(modelo_tudo)
+modelo_step_backward <- MASS::stepAIC(modelo_tudo,
+                                      direction = 'backward',
+                                      scope = list(lower = modelo_vazio, upper = modelo_tudo),
+                                      trace = 1)
+saveRDS(modelo_step_backward, paste0(DIRETORIO_MODELOS, 'modelo_step_backward.rds'))
+# modelo_step_backward <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_step_backward.rds'))
 
-modelo_step <- MASS::stepAIC(modelo_tudo,
-                             direction = 'backward',
-                             # scope = list(lower = modelo_vazio, upper = modelo_tudo,
-                             trace = 1)
+modelo_step_both <- MASS::stepAIC(modelo_vazio,
+                                  direction = 'both',
+                                  scope = list(lower = modelo_vazio, upper = modelo_tudo),
+                                  trace = 1)
+saveRDS(modelo_step_both, paste0(DIRETORIO_MODELOS, 'modelo_step_both.rds'))
+# modelo_step_both <- readRDS(paste0(DIRETORIO_MODELOS, 'modelo_step_both.rds'))
 
-# saveRDS(modelo_step, 'modelos/modelo_step.rds')
-# modelo_step <- readRDS('modelos/modelo_step.rds')
-
-get_sens_spec(modelo_step) %>% 
-    gather(var, value, especificidade, sensitividade) %>% 
-    plot_spec_sens()
-
-get_model_stats(modelo_step, 0.5)
-
-resumo_modelo_step <- summary(modelo_step)
-
-coef_modelo_step <- resumo_modelo_step$coefficients %>% 
-    as.data.frame() %>% 
-    rownames_to_column() %>% 
-    mutate(across(!c(rowname), ~ round(.x, 2))) %>% 
-    rename(`Variável preditora` = rowname,
-           Coeficiente = Estimate,
-           `Erro padrão` = `Std. Error`,
-           `Valor z` = `z value`)
-
-# pagsr::salvar_planilha_excel(coef_modelo_step,
-#                              'coef_modelo_step',
-#                              'csvs/coefs.xlsx')
-
-efeitos_fixos <- tc_train %>%
-    select(-c(flg_churn, county)) %>%
-    colnames() %>%
-    paste(collapse = ' + ')
+glmm_vazio_reml <- glmmTMB(flg_churn ~ 1 + (1 | county),
+                           data = tc_train,
+                           family = binomial,
+                           REML = TRUE)
+saveRDS(glmm_vazio_reml, paste0(DIRETORIO_MODELOS, 'glmm_vazio_reml.rds'))
+# glmm_vazio_reml <- readRDS(paste0(DIRETORIO_MODELOS, 'glmm_vazio_reml.rds'))
 
 glmm_vazio <- glmmTMB(flg_churn ~ 1 + (1 | county),
                       data = tc_train,
                       family = binomial,
-                      REML = T)
+                      REML = FALSE)
+saveRDS(glmm_vazio, paste0(DIRETORIO_MODELOS, 'glmm_vazio.rds'))
+# glmm_vazio <- readRDS(paste0(DIRETORIO_MODELOS, 'glmm_vazio.rds'))
+
+c('LRT', 'LL', 'AIC', 'BIC', 'deviance') %>% map(~ treinar_glmm(.x, restricted = TRUE))
+c('LRT', 'LL', 'AIC', 'BIC', 'deviance') %>% map(~ treinar_glmm(.x, restricted = FALSE))
+
+# get_sens_spec(modelo_step) %>% 
+#     gather(var, value, especificidade, sensitividade) %>% 
+#     plot_spec_sens()
+
+# map_dfr(seq(0.1, 0.9, 0.05),
+#         ~ get_model_stats(modelo_step, .x))
+
+# coef_modelo_step <- summary(modelo_step)$coefficients %>% 
+#     as.data.frame() %>% 
+#     rownames_to_column() %>% 
+#     mutate(across(!c(rowname), ~ round(.x, 2))) %>% 
+#     rename(`Variável preditora` = rowname,
+#            Coeficiente = Estimate,
+#            `Erro padrão` = `Std. Error`,
+#            `Valor z` = `z value`)
+
+# pagsr::salvar_planilha_excel(coef_modelo_step,
+#                              'coef_modelo_step',
+#                              'csvs/coefs.xlsx')
 
 # Erro ao estimar modelo com todas as variaveis preditoras disponiveis
 # glmm_tudo <- glmmTMB(as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | county)")),
@@ -298,84 +374,64 @@ glmm_vazio <- glmmTMB(flg_churn ~ 1 + (1 | county),
 #                      family = binomial,
 #                      REML = T)
 
+# summary(glmm_step)
 
-# glmm_step <- buildglmmTMB(as.formula(glue("flg_churn ~ (1 | county) + {teste}")),
-#                           data = tc_train,
-#                           family = binomial,
-#                           buildmerControl = buildmerControl(crit = 'AIC', elim = 'AIC', REML = T))
+# tmp1 <- get_sens_spec(modelo_step) %>% 
+#     mutate(modelo = 'Clássico') %>%
+#     rename_with(str_to_title, c(especificidade, sensitividade)) %>% 
+#     gather(var, value, Especificidade, Sensitividade)
+# 
+# tmp2 <- get_sens_spec(glmm_step) %>% 
+#     mutate(modelo = 'Multinível') %>% 
+#     rename_with(str_to_title, c(especificidade, sensitividade)) %>% 
+#     gather(var, value, Especificidade, Sensitividade)
+# 
+# tmp1 %>% 
+#     rbind(tmp2) %>% 
+#     mutate(var = glue("{var}: {modelo}")) %>% 
+#     select(-c(modelo)) %>% 
+#     plot_spec_sens()
+# 
+# 
+# stats_modelo_step <- list(modelo_step, modelo_step2, modelo_step3) %>% 
+#     map_dfr(~ get_model_stats(.x , 0.5)) %>% 
+#     mutate(Modelo = 'Clássico')
+# 
+# stats_glmm_step <- get_model_stats(glmm_step@model, 0.5) %>% 
+#     mutate(Modelo = 'Multinível')
+# 
+# stats_modelos <- stats_modelo_step %>% 
+#     rbind(stats_glmm_step) %>% 
+#     select(Modelo, everything())
 
-# glmm_step <- buildglmmTMB(as.formula(glue("flg_churn ~ (1 | county) + {efeitos_fixos}")),
-#                           data = tc_train,
-#                           family = binomial,
-#                           buildmerControl = buildmerControl(crit = 'AIC', elim = 'AIC', REML = T))
+# pagsr::salvar_planilha_excel(stats_modelos, 'stats_modelos', 'csvs/stats_modelos.xlsx')
 
-# save(glmm_step, file = 'modelos/glmm_step.RData')
-# saveRDS(glmm_step, 'modelos/glmm_step.rds')
-glmm_step <- readRDS('modelos/glmm_step.rds')
+# glmm_step@summary$p.coeff %>% View() # estimate
+# glmm_step@summary$se %>% View() # std. error
+# glmm_step@summary$p.t %>% View() # z value
+# glmm_step@summary$p.pv %>% View() # pr(>|z|)
 
-summary(glmm_step)
-
-tmp1 <- get_sens_spec(modelo_step) %>% 
-    mutate(modelo = 'modelo_step') %>% 
-    gather(var, value, especificidade, sensitividade)
-
-tmp2 <- get_sens_spec(glmm_step) %>% 
-    mutate(modelo = 'glmm_step') %>% 
-    gather(var, value, especificidade, sensitividade)
-
-tmp1 %>% 
-    rbind(tmp2) %>% 
-    mutate(var = glue("{modelo}: {var}")) %>% 
-    select(-c(modelo)) %>% 
-    plot_spec_sens()
-
-
-
-stats_modelo_step <- get_model_stats(modelo_step, 0.5) %>% mutate(Modelo = 'Clássico')
-stats_glmm_step <- get_model_stats(glmm_step, 0.5) %>% mutate(Modelo = 'Multinível')
-
-stats_modelos <- stats_modelo_step %>% 
-    rbind(stats_glmm_step) %>% 
-    select(Modelo, everything())
-
-pagsr::salvar_planilha_excel(stats_modelos, 'stats_modelos', 'csvs/stats_modelos.xlsx')
-
-# resumo_glmm_step <- summary(glmm_step)
-# resumo_glmm_step$p.coeff %>% View() # estimate
-# resumo_glmm_step$se %>% View() # std. error
-# resumo_glmm_step$p.t %>% View() # z value
-# resumo_glmm_step$p.pv %>% View() # pr(>|z|)
-
-coef_glmm_step <- data.frame(p.coeff = resumo_glmm_step$p.coeff,
-                             se = resumo_glmm_step$se,
-                             p.t = resumo_glmm_step$p.t,
-                             p.pv = resumo_glmm_step$p.pv) %>% 
-    rownames_to_column() %>% 
-    mutate(modelo = 'coef_glmm_step',
-           across(!c(rowname, modelo), ~ round(.x, 2))) %>% 
-    rename(`Variável preditora` = rowname,
-           Coeficiente = p.coeff,
-           `Erro padrão` = se,
-           `Valor z` = p.t,
-           `Pr(>|z|)` = p.pv) %>% 
-    select(modelo, everything())
+# coef_glmm_step <- data.frame(p.coeff = glmm_step@summary$p.coeff,
+#                              se = glmm_step@summary$se,
+#                              p.t = glmm_step@summary$p.t,
+#                              p.pv = glmm_step@summary$p.pv) %>% 
+#     rownames_to_column() %>% 
+#     mutate(modelo = 'coef_glmm_step',
+#            across(!c(rowname, modelo), ~ round(.x, 2))) %>% 
+#     rename(`Variável preditora` = rowname,
+#            Coeficiente = p.coeff,
+#            `Erro padrão` = se,
+#            `Valor z` = p.t,
+#            `Pr(>|z|)` = p.pv) %>% 
+#     select(modelo, everything())
 
 # write_delim(coef_glmm_step, 'csvs/coef_glmm_step.csv', ';')
-pagsr::salvar_planilha_excel(coef_glmm_step,
-                             'coef_glmm_step',
-                             'csvs/coefs.xlsx')
+# pagsr::salvar_planilha_excel(coef_glmm_step,
+#                              'coef_glmm_step',
+#                              'csvs/coefs.xlsx')
 
+# predict(modelo_rf, tc_test, type = "class")
+# mean(predict(modelo_rf, tc_test, type = "class") == tc_test$flg_churn)
 
-coef_glmm_step <- resumo_glmm_step$p.coeff %>% 
-    as.data.frame() %>% 
-    rownames_to_column() %>% 
-    mutate(across(!c(rowname), ~ round(.x, 3)))
-
-modelo_step$aic
-glmm_step@model$aic
-modelo_step$aic - glmm_step@model$aic
-
-get_area_sob_curva(glmm_step@model$fitted.values, tc_train$flg_churn)
-
-logLik(modelo_step)
-logLik(glmm_step)
+# importance(modelo_rf)
+# varImpPlot(modelo_rf)
