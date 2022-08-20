@@ -16,6 +16,7 @@ library(rpart)
 library(rpart.plot)
 library(fastDummies)
 options(tigris_use_cache = T)
+theme_set(theme_light())
 setwd("/home/lmonteiro/Documents/mba/tcc/telco_churn")
 NEW_MODELS_DIR <- 'new_modelagem/new_modelos'
 
@@ -255,6 +256,7 @@ modelo_rl_tudo <- glm(flg_churn ~ .,
                       na.action = na.omit,
                       family = binomial)
 
+AIC(modelo_rl_tudo)
 
 modelo_rl_forward <- MASS::stepAIC(modelo_rl_vazio,
                                    direction = 'forward',
@@ -270,6 +272,35 @@ modelo_rl_both <- MASS::stepAIC(modelo_rl_vazio,
                                 direction = 'both',
                                 scope = list(lower = modelo_rl_vazio, upper = modelo_rl_tudo),
                                 trace = 1)
+
+### Melhor modelo obtido, com AIC = 836.78. criterio both
+
+modelo_rl_both_menor_aic <- glm(flg_churn ~ satisfaction_score_4 + satisfaction_score_5 + satisfaction_score_3 + flg_online_security + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + contract_Two_Year + flg_married + number_of_dependents + county_San_Diego_County + flg_premium_tech_support + flg_phone_service + contract_One_Year + offer_Offer_E + county_Mendocino_County + offer_Offer_A + county_Lake_County + age + county_Nevada_County + tx_contrib_cobrancas_extras_cobranca_geral + county_Fresno_County + county_El_Dorado_County + county_Tulare_County + total_charges + county_San_Mateo_County + avg_monthly_long_distance_charges + valor_cobrancas_extras + internet_type_Fiber_Optic + flg_online_backup,
+                                data = dummies_tc_train,
+                                na.action = na.omit,
+                                family = binomial)
+
+AIC(modelo_rl_both_menor_aic)
+summary(modelo_rl_both_menor_aic)
+
+
+indicadores_modelo_rl_both_menor_aic <- seq(0.1, 0.9, 0.05) %>% 
+    map_dfr(~ get_indicadores_modelo(modelo_rl_both_menor_aic, dummies_tc_test, cutoff = .x, 'rl_step_both'))
+
+to_plot_indicadores_modelo_rl_both_menor_aic <- indicadores_modelo_rl_both_menor_aic %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_modelo_rl_both_menor_aic,
+       aes(`Ponto de corte`, indicador, color = nome_indicador)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d() +
+    labs(y = NULL, color = 'Indicador')
+
+# plotly::ggplotly()
+
+ggsave("new_modelagem/indicadores_modelo_rl_both_menor_aic.png",
+       width = 9, height = 5)
 
 # modelo_arvore <- rpart(flg_churn ~ . -county,
 #                        data = tc_train
