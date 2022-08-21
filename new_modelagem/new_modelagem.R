@@ -286,6 +286,13 @@ ggsave("new_modelagem/correlacao_variaveis_numericas_outra_cor.png",
        width = 9, height = 6)
 
 
+tabela_correlacao <- to_plot_corr_m %>% 
+    filter(!is.na(correlacao)) %>% 
+    mutate(correlacao_absoluta = abs(correlacao)) %>% 
+    arrange(desc(correlacao_absoluta))
+
+write_delim(tabela_correlacao, 'new_modelagem/tabela_correlacao.csv', delim = ';')
+
 ## Regressao logistica
 
 modelo_rl_vazio <- glm(flg_churn ~ 1,
