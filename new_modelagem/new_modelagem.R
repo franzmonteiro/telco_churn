@@ -259,6 +259,35 @@ rf_dummies_tc_test <- rf_tc_dummies[-rf_dummies_train_idx,]
 
 dim(dummies_tc_train)
 
+
+## Analise de correlacao entre variaveis numericas
+corr_m <- tc_mod %>%
+    select(where(is.double)) %>%
+    cor()
+
+corr_m[upper.tri(corr_m, diag = T)] <- NA
+corr_m <- corr_m %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename(v1 = 1)
+
+to_plot_corr_m <- corr_m %>% 
+    pivot_longer(-v1, names_to = 'v2', values_to = 'correlacao') %>% 
+    mutate(across(c(v1, v2), as_factor))
+
+ggplot(to_plot_corr_m, aes(v1, v2, fill = correlacao)) +
+    geom_tile() +
+    # scale_fill_viridis_c(na.value = "#FF000000") +
+    scale_fill_viridis_c(option = 'C', na.value = "#FF000000") +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    labs(x = NULL, y = NULL, fill = 'Correlação')
+
+ggsave("new_modelagem/correlacao_variaveis_numericas_outra_cor.png",
+       width = 9, height = 6)
+
+
+## Regressao logistica
+
 modelo_rl_vazio <- glm(flg_churn ~ 1,
                        data = dummies_tc_train,
                        na.action = na.omit,
