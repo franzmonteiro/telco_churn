@@ -1,0 +1,6 @@
+descricao;AUC
+Regressão logística com stepwise;0.9885148195876285
+Random forest com validação cruzada;0.9884325524668631
+Árvore de decisão;0.9853777384020618
+Random forest;0.9832658321060384
+Random forest com variável dummy;0.980542962997054

@@ -231,6 +231,12 @@ tc_dummies <- dummy_columns(.data = tc_mod,
                             remove_first_dummy = TRUE) %>%
     rename_with(~ str_replace_all(.x, ' ', '_'), matches(' '))
 
+rf_tc_dummies <- dummy_columns(.data = tc_mod,
+                               select_columns = 'county',
+                               remove_selected_columns = TRUE,
+                               remove_first_dummy = TRUE) %>%
+    rename_with(~ str_replace_all(.x, ' ', '_'), matches(' '))
+
 ## Amostragem
 set.seed(3)
 train_idx <- createDataPartition(tc_mod$flg_churn, p = .7, list = F)
@@ -243,6 +249,13 @@ set.seed(3)
 dummies_train_idx <- createDataPartition(tc_dummies$flg_churn, p = .7, list = F)
 dummies_tc_train <- tc_dummies[dummies_train_idx,]
 dummies_tc_test <- tc_dummies[-dummies_train_idx,]
+
+dim(dummies_tc_train)
+
+set.seed(3)
+rf_dummies_train_idx <- createDataPartition(rf_tc_dummies$flg_churn, p = .7, list = F)
+rf_dummies_tc_train <- rf_tc_dummies[rf_dummies_train_idx,]
+rf_dummies_tc_test <- rf_tc_dummies[-rf_dummies_train_idx,]
 
 dim(dummies_tc_train)
 
@@ -280,9 +293,17 @@ modelo_rl_both_menor_aic <- glm(flg_churn ~ satisfaction_score_4 + satisfaction_
                                 na.action = na.omit,
                                 family = binomial)
 
-AIC(modelo_rl_both_menor_aic)
-summary(modelo_rl_both_menor_aic)
+coef_modelo_rl_both_menor_aic <- summary(modelo_rl_both_menor_aic)$coefficients %>%
+    as.data.frame() %>%
+    rownames_to_column() %>%
+    mutate(across(!c(rowname), ~ round(.x, 3))) %>%
+    rename(`Variável preditora` = rowname,
+           Coeficiente = Estimate,
+           `Erro padrão` = `Std. Error`,
+           `Valor z` = `z value`)
 
+write_delim(coef_modelo_rl_both_menor_aic, 'new_modelagem/coef_modelo_rl_both_menor_aic.csv',
+            delim = ';')
 
 indicadores_modelo_rl_both_menor_aic <- seq(0.1, 0.9, 0.05) %>% 
     map_dfr(~ get_indicadores_modelo(modelo_rl_both_menor_aic, dummies_tc_test, cutoff = .x, 'rl_step_both'))
@@ -302,135 +323,185 @@ ggplot(to_plot_indicadores_modelo_rl_both_menor_aic,
 ggsave("new_modelagem/indicadores_modelo_rl_both_menor_aic.png",
        width = 9, height = 5)
 
-# modelo_arvore <- rpart(flg_churn ~ . -county,
-#                        data = tc_train
-#                        # control = rpart.control(cp = 0)
-#                        )
-# 
-# printcp(modelo_arvore)
-# plotcp(modelo_arvore)
-# 
-# modelo_arvore_podada <- prune(modelo_arvore,
-#                               cp = modelo_arvore$cptable[which.min(modelo_arvore$cptable[,"xerror"]), "CP"])
-# 
-# printcp(modelo_arvore_podada)
-# plotcp(modelo_arvore_podada)
-# 
-# mean(tc_test$flg_churn == predict(modelo_arvore_podada, tc_test, type = "class"))
-# 
-# indicadores_arvore <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(modelo_arvore_podada, tc_test, cutoff = .x, descricao = 'Árvore de decisão'))
-# 
-# rpart.rules(modelo_arvore_podada)
-# 
-# rpart.plot(modelo_arvore, type = 3, clip.right.labs = FALSE, branch = .3, under = TRUE)
-# 
-# 
-# ## Random forest
-# modelo_rf <- randomForest(flg_churn ~ . -county,
-#                           data = tc_train,
-#                           # data = dummies_tc_train,
-#                           ntree = 500,
-#                           importance = TRUE)
+write_delim(indicadores_modelo_rl_both_menor_aic, 'new_modelagem/indicadores_modelo_rl_both_menor_aic.csv', delim = ';')
+
+
+## Arvore de decisao
+
+modelo_arvore <- rpart(flg_churn ~ ., # -county
+                       data = tc_train,
+                       control = rpart.control(cp = 0)
+                       )
+
+printcp(modelo_arvore)
+plotcp(modelo_arvore)
+ 
+modelo_arvore_podada <- prune(modelo_arvore,
+                              cp = modelo_arvore$cptable[which.min(modelo_arvore$cptable[,"xerror"]), "CP"])
+
+printcp(modelo_arvore_podada)
+plotcp(modelo_arvore_podada)
+
+mean(tc_test$flg_churn == predict(modelo_arvore_podada, tc_test, type = "class"))
+
+indicadores_arvore <- seq(0.1, 0.9, 0.05) %>%
+    map_dfr(~ get_indicadores_modelo(modelo_arvore_podada, tc_test, cutoff = .x, descricao = 'Árvore de decisão'))
+
+
+write_delim(indicadores_arvore, 'new_modelagem/indicadores_arvore.csv', ';')
+
+
+to_plot_indicadores_arvore <- indicadores_arvore %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_arvore,
+       aes(`Ponto de corte`, indicador, color = nome_indicador)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d() +
+    labs(y = NULL, color = 'Indicador')
+
+ggsave("new_modelagem/indicadores_arvore.png",
+       width = 9, height = 5)
+
+tmp_regras_arvore <- rpart.rules(modelo_arvore_podada)
+
+colnames(tmp_regras_arvore) <- c('flg_churn', paste0('V', 2:ncol(tmp_regras_arvore)))
+
+regras_arvore <- tmp_regras_arvore %>% 
+    unite('regra', -flg_churn, sep = ' ', remove = TRUE, na.rm = TRUE) %>% 
+    mutate(regra = str_squish(regra))
+
+write_delim(regras_arvore, 'new_modelagem/regras_arvore.csv', ';')
+
+rpart.plot(modelo_arvore, type = 3, clip.right.labs = FALSE, branch = .3, under = TRUE)
+
+## Random forest
+modelo_rf <- randomForest(flg_churn ~ . -county,
+                          # data = tc_train,
+                          data = tc_train,
+                          ntree = 1000,
+                          importance = TRUE)
 # saveRDS(modelo_rf, glue('{NEW_MODELS_DIR}/modelo_rf.rds'))
 # 
 # plot(modelo_rf)
 # 
-# mean(tc_test$flg_churn == predict(modelo_rf, tc_test, type = "class"))
-# # mean(dummies_tc_test$flg_churn == predict(modelo_rf, dummies_tc_test, type = "class"))
-# indicadores_rf <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(modelo_rf, tc_test, cutoff = .x, descricao = 'Random forest'))
-# 
+# mean(tc_test$flg_churn == predict(modelo_rf, dummies_tc_test, type = "class"))
+# mean(dummies_tc_test$flg_churn == predict(modelo_rf, dummies_tc_test, type = "class"))
+indicadores_rf <- seq(0.1, 0.9, 0.05) %>%
+    map_dfr(~ get_indicadores_modelo(modelo_rf, tc_test, cutoff = .x, descricao = 'Random forest'))
+
+to_plot_indicadores_rf <- indicadores_rf %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_rf,
+       aes(`Ponto de corte`, indicador, color = nome_indicador)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d() +
+    labs(y = NULL, color = 'Indicador')
+
+ggsave("new_modelagem/indicadores_rf.png",
+       width = 9, height = 5)
+
+write_delim(indicadores_rf, 'new_modelagem/indicadores_rf.csv', delim = ';')
+
 # sqrt(ncol(select(tc_train, -county)))
-# 
-# library(caret)
-# tc_train2 <- tc_train %>% 
-#     mutate(across(starts_with('flg_'), ~ as.factor(ifelse(.x == '1', 'Sim', 'Não'))))
-# 
-# rf_2 <- caret::train(flg_churn ~ .,
-#                      data = tc_train2,
-#                      method = 'rf',
-#                      trControl = trainControl(method = 'cv',
-#                                               number = 10,
-#                                               classProbs = TRUE,
-#                                               summaryFunction = twoClassSummary),
-#                      na.action = na.omit,
-#                      metric = 'ROC')
-# 
-# tc_test2 <- tc_test %>% 
-#     mutate(across(starts_with('flg_'), ~ as.factor(ifelse(.x == '1', 'Sim', 'Não'))))
-# 
-# indicadores_rf2 <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(rf_2, tc_test2, cutoff = .x, descricao = 'RF2'))
-# 
-# indicadores_geral <- indicadores_arvore %>% 
-#     rbind(indicadores_rf) %>% 
-#     rbind(indicadores_rf2) %>% 
-#     rbind(indicadores_rl_tudo) %>% 
-#     rbind(indicadores_rl_forward) %>% 
-#     rbind(indicadores_rl_both)
-# 
-# tmp <- indicadores_geral %>% 
-#     group_by(descricao) %>% 
-#     summarise(AUC = max(AUC)) %>% 
-#     arrange(desc(AUC))
-# 
-# ggplot(indicadores_geral %>% 
-#            select(-c(AUC)) %>% 
-#            gather(var, value, Acurácia:Especificidade), aes(`Ponto de corte`, value, color = descricao)) +
-#     geom_line() +
-#     geom_point() +
-#     scale_color_brewer(palette = 'Set3') +
-#     # scale_color_viridis_d() +
-#     facet_wrap(~ var) +
-#     theme_dark() +
-#     labs(x = 'Ponto de corte', y = NULL, color = 'Modelo')
-# 
-# 
-# ## Xgboost
-# 
-# 
-# ## Regressao logistica
-# 
-# modelo_rl_vazio <- glm(flg_churn ~ 1,
-#                     data = tc_train,
-#                     na.action = na.omit,
-#                     family = binomial)
-# saveRDS(modelo_rl_vazio, glue('{NEW_MODELS_DIR}/modelo_rl_vazio.rds'))
-# 
-# modelo_rl_tudo <- glm(flg_churn ~ . -county,
-#                    data = tc_train,
-#                    na.action = na.omit,
-#                    family = binomial)
-# saveRDS(modelo_rl_tudo, glue('{NEW_MODELS_DIR}/modelo_rl_tudo.rds'))
-# 
-# indicadores_rl_tudo <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(modelo_rl_tudo, tc_test, cutoff = .x, descricao = 'Regressão logística, sem stepwise'))
-# 
-# 
-# modelo_rl_forward <- MASS::stepAIC(modelo_rl_vazio,
-#                                      direction = 'forward',
-#                                      scope = list(lower = modelo_rl_vazio, upper = modelo_rl_tudo),
-#                                      trace = 1)
-# saveRDS(modelo_rl_forward, glue('{NEW_MODELS_DIR}/modelo_rl_forward.rds'))
-# 
-# indicadores_rl_forward <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(modelo_step_forward, tc_test, cutoff = .x, descricao = 'Regressão logística, com forward elimination'))
-# 
-# 
-# modelo_rl_backward <- MASS::stepAIC(modelo_rl_tudo,
-#                                       direction = 'backward',
-#                                       scope = list(lower = modelo_rl_vazio, upper = modelo_rl_tudo),
-#                                       trace = 1)
-# saveRDS(modelo_rl_backward, glue('{NEW_MODELS_DIR}/modelo_rl_backward.rds'))
-# 
-# modelo_rl_both <- MASS::stepAIC(modelo_rl_vazio,
-#                                   direction = 'both',
-#                                   scope = list(lower = modelo_rl_vazio, upper = modelo_rl_tudo),
-#                                   trace = 1)
-# saveRDS(modelo_rl_both, glue('{NEW_MODELS_DIR}/modelo_rl_both.rds'))
-# 
-# indicadores_rl_both <- seq(0.1, 0.9, 0.1) %>% 
-#     map_dfr(~ get_indicadores_modelo(modelo_rl_both, tc_test, cutoff = .x, descricao = 'Regressão logística, com forward-backward elimination'))
-# 
-# ## Performance dos modelos
+
+
+modelo_rf_dummy <- randomForest(flg_churn ~ .,
+                                data = rf_dummies_tc_train,
+                                ntree = 1000,
+                                importance = TRUE)
+
+indicadores_rf_dummy <- seq(0.1, 0.9, 0.05) %>%
+    map_dfr(~ get_indicadores_modelo(modelo_rf_dummy, rf_dummies_tc_test, cutoff = .x, descricao = 'Random forest dummy county'))
+
+to_plot_indicadores_rf_dummy <- indicadores_rf_dummy %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_rf_dummy,
+       aes(`Ponto de corte`, indicador, color = nome_indicador)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d() +
+    labs(y = NULL, color = 'Indicador')
+
+ggsave("new_modelagem/indicadores_rf_dummy.png",
+       width = 9, height = 5)
+
+write_delim(indicadores_rf_dummy, 'new_modelagem/indicadores_rf_dummy.csv', delim = ';')
+
+
+library(caret)
+tc_train_rf_caret <- tc_train %>%
+    mutate(across(starts_with('flg_'), ~ as.factor(ifelse(.x == '1', 'Sim', 'Não'))))
+    # mutate(across(flg_churn, ~ as.factor(ifelse(.x == '1', 'Sim', 'Não')), .names = "new_{.col}"))
+
+tc_test_rf_caret <- tc_test %>%
+    mutate(across(starts_with('flg_'), ~ as.factor(ifelse(.x == '1', 'Sim', 'Não'))))
+
+
+# table(tc_train_rf_caret$flg_churn, tc_train_rf_caret$new_flg_churn)
+
+modelo_rf_caret <- caret::train(flg_churn ~ .,
+                                data = tc_train_rf_caret,
+                                method = 'rf',
+                                trControl = trainControl(method = 'cv',
+                                                         number = 10,
+                                                         classProbs = TRUE,
+                                                         summaryFunction = twoClassSummary),
+                                na.action = na.omit,
+                                metric = 'ROC')
+
+
+indicadores_rf_caret <- seq(0.1, 0.9, 0.05) %>%
+    map_dfr(~ get_indicadores_modelo(modelo_rf_caret, tc_test_rf_caret, cutoff = .x, descricao = 'Random forest caret'))
+
+to_plot_indicadores_rf_caret <- indicadores_rf_caret %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_rf_caret,
+       aes(`Ponto de corte`, indicador, color = nome_indicador)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d() +
+    labs(y = NULL, color = 'Indicador')
+
+
+ggsave("new_modelagem/indicadores_rf_caret.png",
+       width = 9, height = 5)
+
+write_delim(indicadores_rf_caret, 'new_modelagem/indicadores_rf_caret.csv', delim = ';')
+
+
+indicadores_geral <- rbind(indicadores_modelo_rl_both_menor_aic,
+                           indicadores_arvore,
+                           indicadores_rf,
+                           indicadores_rf_dummy,
+                           indicadores_rf_caret) %>% 
+    mutate(descricao = case_when(descricao == 'Random forest caret' ~ 'Random forest com validação cruzada',
+                                 descricao == 'Random forest dummy county'~ 'Random forest com variável dummy',
+                                 descricao == 'rl_step_both' ~ 'Regressão logística com stepwise',
+                                 T ~ descricao))
+
+to_plot_indicadores_geral <- indicadores_geral %>% 
+    pivot_longer(c(`Acurácia`, Sensitividade, Especificidade), names_to = 'nome_indicador', values_to = 'indicador')
+
+ggplot(to_plot_indicadores_geral,
+       aes(`Ponto de corte`, indicador, color = descricao)) +
+    geom_line() +
+    geom_point() +
+    scale_color_viridis_d(option = 'C') +
+    facet_wrap(~ nome_indicador) +
+    labs(y = NULL, color = 'Modelo')
+
+ggsave("new_modelagem/indicadores_geral.png",
+       width = 9, height = 5)
+
+auc_modelos <- indicadores_geral %>% 
+    select(descricao, AUC) %>% 
+    distinct() %>% 
+    arrange(desc(AUC))
+
+write_delim(auc_modelos, 'new_modelagem/auc_modelos_geral.csv', delim = ';')
