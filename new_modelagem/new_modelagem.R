@@ -15,6 +15,7 @@ library(randomForest)
 library(rpart)
 library(rpart.plot)
 library(fastDummies)
+library(lme4)
 options(tigris_use_cache = T)
 theme_set(theme_light())
 setwd("/home/lmonteiro/Documents/mba/tcc/telco_churn")
@@ -220,6 +221,9 @@ tc_mod %>%
     gather(variavel, qtd_nulos, everything()) %>% 
     arrange(desc(qtd_nulos))
 
+tc_scaled <- tc_mod %>% 
+    mutate(across(where(is.double) & !matches('tx_'), ~ .x - mean(.x, na.rm = T)))
+
 variaveis_dummizar <- tc_mod %>%
     select(!where(is.double)) %>%
     select(-matches('flg_')) %>%
@@ -230,6 +234,7 @@ tc_dummies <- dummy_columns(.data = tc_mod,
                             remove_selected_columns = TRUE,
                             remove_first_dummy = TRUE) %>%
     rename_with(~ str_replace_all(.x, ' ', '_'), matches(' '))
+
 
 rf_tc_dummies <- dummy_columns(.data = tc_mod,
                                select_columns = 'county',
@@ -285,6 +290,8 @@ ggplot(to_plot_corr_m, aes(v1, v2, fill = correlacao)) +
 ggsave("new_modelagem/correlacao_variaveis_numericas_outra_cor.png",
        width = 9, height = 6)
 
+
+plotly::ggplotly()
 
 tabela_correlacao <- to_plot_corr_m %>% 
     filter(!is.na(correlacao)) %>% 
@@ -541,3 +548,46 @@ auc_modelos <- indicadores_geral %>%
     arrange(desc(AUC))
 
 write_delim(auc_modelos, 'new_modelagem/auc_modelos_geral.csv', delim = ';')
+
+
+## Regressao logistica multinivel
+
+# modelo_rl_multinivel <- glmmTMB(formula = as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | county)")),
+#                                 data = tc_train,
+#                                 family = binomial,
+#                                 na.action = na.omit)
+
+
+modelo_rl_multinivel <- glmer(formula = as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | county)")),
+                              data = tc_train_scaled,
+                              family = binomial,
+                              na.action = na.omit,
+                              nAGQ = 0)
+
+summary(modelo_rl_multinivel)
+
+glmm_test <- glmer(flg_churn ~ 1 + (1 | satisfaction_score), #satisfaction_score; city; zip_code; offer; contract
+                   data = tc_train_scaled,
+                   family = binomial)
+performance::icc(glmm_test)
+
+efeitos_fixos <- tc_train %>%
+    select(-c(flg_churn, satisfaction_score)) %>%
+    colnames() %>%
+    paste(collapse = ' + ')
+
+modelo_rl_multinivel_step <- buildmer(formula = as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | satisfaction_score)")),
+                                      data = tc_train_scaled,
+                                      family = binomial,
+                                      buildmerControl = buildmerControl(crit = 'AIC',
+                                                                        elim = 'AIC',
+                                                                        include = "(1 | satisfaction_score)"))
+
+summary(modelo_rl_multinivel_step)
+
+tmp <- glmer(formula = as.formula(glue("flg_churn ~ {efeitos_fixos} + (1 | satisfaction_score)")),
+             data = tc_train_scaled,
+             family = binomial,
+             nAGQ = 0)
+
+summary(tmp)
