@@ -1,0 +1,19 @@
+descricao;aic;formula
+Start;5709.08;flg_churn ~ 1
+Step;1641.99;flg_churn ~ satisfaction_score
+Step;1352.93;flg_churn ~ satisfaction_score + flg_online_security
+Step;1191.3;flg_churn ~ satisfaction_score + flg_online_security + contract
+Step;1109.41;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals
+Step;1041.44;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge
+Step;988.13;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3
+Step;955.54;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married
+Step;913.58;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents
+Step;903.79;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support
+Step;894.15;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service
+Step;889.6;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer
+Step;886.21;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup
+Step;884.36;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup + age
+Step;883.52;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana
+Step;880.62;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + condado_idade_mediana_habitantes
+Step;876.95;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + condado_idade_mediana_habitantes + condado_tx_habitantes_menor_18_anos
+Step;875.53;flg_churn ~ satisfaction_score + flg_online_security + contract + number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + flg_married + number_of_dependents + flg_premium_tech_support + flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + condado_idade_mediana_habitantes + condado_tx_habitantes_menor_18_anos + condado_densidade_populacional

@@ -1,0 +1,875 @@
+Start:  AIC=5709.08
+flg_churn ~ 1
+
+                                               Df Deviance    AIC
++ satisfaction_score                            4   1632.0 1642.0
++ contract                                      2   4543.2 4549.2
++ tenure_in_months                              1   5051.6 5055.6
++ number_of_referrals                           1   5180.1 5184.1
++ internet_type                                 3   5195.6 5203.6
++ tx_concentracao_cobranca_mes_q3               1   5218.2 5222.2
++ offer                                         5   5360.7 5372.7
++ number_of_dependents                          1   5378.4 5382.4
++ flg_internet_service                          1   5381.2 5385.2
++ total_long_distance_charges                   1   5443.4 5447.4
++ valor_cobrancas_extras                        1   5444.0 5448.0
++ valor_cobranca_geral                          1   5455.7 5459.7
++ qtd_servicos_principais                       1   5464.0 5468.0
++ payment_method                                2   5480.4 5486.4
++ monthly_charge                                1   5505.5 5509.5
++ total_charges                                 1   5511.0 5515.0
++ flg_paperless_billing                         1   5533.8 5537.8
++ flg_premium_tech_support                      1   5536.5 5540.5
++ flg_unlimited_data                            1   5540.5 5544.5
++ flg_online_security                           1   5571.5 5575.5
++ flg_married                                   1   5597.6 5601.6
++ tx_contrib_cobrancas_extras_cobranca_geral    1   5632.1 5636.1
++ cltv                                          1   5639.8 5643.8
++ age                                           1   5647.3 5651.3
++ qtd_servicos_adicionais                       1   5664.1 5668.1
++ flg_online_backup                             1   5674.5 5678.5
++ qtd_streamings                                1   5675.7 5679.7
++ flg_streaming_movies                          1   5676.2 5680.2
++ flg_device_protection_plan                    1   5681.7 5685.7
++ flg_streaming_music                           1   5685.7 5689.7
++ flg_streaming_tv                              1   5688.3 5692.3
++ avg_monthly_gb_download                       1   5692.3 5696.3
++ flg_multiple_lines                            1   5697.4 5701.4
++ total_refunds                                 1   5702.8 5706.8
++ condado_idade_mediana_habitantes              1   5703.0 5707.0
++ condado_indice_gini_desigualdade_renda        1   5704.0 5708.0
++ condado_renda_familiar_mediana                1   5704.2 5708.2
++ condado_qtd_habitantes                        1   5704.6 5708.6
++ condado_area_terra_m2                         1   5705.0 5709.0
+<none>                                              5707.1 5709.1
++ avg_monthly_long_distance_charges             1   5705.7 5709.7
++ tx_valores_reembolsados                       1   5706.5 5710.5
++ condado_tx_habitantes_homens                  1   5706.8 5710.8
++ total_extra_data_charges                      1   5706.8 5710.8
++ flg_phone_service                             1   5706.8 5710.8
++ gender                                        1   5707.0 5711.0
++ condado_tx_habitantes_menor_18_anos           1   5707.0 5711.0
++ condado_densidade_populacional                1   5707.1 5711.1
++ county                                       57   5597.2 5713.2
++ city                                       1100   4213.6 6415.6
+
+Step:  AIC=1641.99
+flg_churn ~ satisfaction_score
+
+                                               Df Deviance    AIC
++ flg_online_security                           1   1340.9 1352.9
++ contract                                      2   1375.0 1389.0
++ tenure_in_months                              1   1427.5 1439.5
++ tx_concentracao_cobranca_mes_q3               1   1441.2 1453.2
++ number_of_referrals                           1   1455.6 1467.6
++ offer                                         5   1509.7 1529.7
++ valor_cobranca_geral                          1   1532.2 1544.2
++ internet_type                                 3   1529.8 1545.8
++ number_of_dependents                          1   1535.6 1547.6
++ total_charges                                 1   1542.7 1554.7
++ flg_premium_tech_support                      1   1556.8 1568.8
++ qtd_servicos_adicionais                       1   1558.4 1570.4
++ valor_cobrancas_extras                        1   1561.5 1573.5
++ total_long_distance_charges                   1   1561.6 1573.6
++ flg_married                                   1   1583.4 1595.4
++ payment_method                                2   1586.8 1600.8
++ flg_paperless_billing                         1   1591.2 1603.2
++ qtd_servicos_principais                       1   1605.9 1617.9
++ flg_internet_service                          1   1606.2 1618.2
++ flg_online_backup                             1   1607.3 1619.3
++ monthly_charge                                1   1611.5 1623.5
++ cltv                                          1   1611.5 1623.5
++ age                                           1   1617.5 1629.5
++ flg_unlimited_data                            1   1621.9 1633.9
++ flg_device_protection_plan                    1   1622.7 1634.7
++ condado_renda_familiar_mediana                1   1627.2 1639.2
++ flg_streaming_movies                          1   1627.2 1639.2
++ qtd_streamings                                1   1627.3 1639.3
++ condado_idade_mediana_habitantes              1   1627.4 1639.4
++ flg_streaming_music                           1   1628.5 1640.5
++ tx_contrib_cobrancas_extras_cobranca_geral    1   1629.0 1641.0
++ flg_streaming_tv                              1   1629.7 1641.7
++ tx_valores_reembolsados                       1   1629.7 1641.7
+<none>                                              1632.0 1642.0
++ flg_phone_service                             1   1630.6 1642.6
++ condado_densidade_populacional                1   1630.7 1642.7
++ gender                                        1   1631.0 1643.0
++ avg_monthly_long_distance_charges             1   1631.4 1643.4
++ total_refunds                                 1   1631.4 1643.4
++ condado_qtd_habitantes                        1   1631.6 1643.6
++ total_extra_data_charges                      1   1631.8 1643.8
++ condado_indice_gini_desigualdade_renda        1   1631.9 1643.9
++ condado_tx_habitantes_homens                  1   1632.0 1644.0
++ condado_tx_habitantes_menor_18_anos           1   1632.0 1644.0
++ condado_area_terra_m2                         1   1632.0 1644.0
++ flg_multiple_lines                            1   1632.0 1644.0
++ avg_monthly_gb_download                       1   1632.0 1644.0
++ county                                       57   1526.3 1650.3
++ city                                       1100    789.5 2999.5
+
+Step:  AIC=1352.93
+flg_churn ~ satisfaction_score + flg_online_security
+
+                                               Df Deviance    AIC
++ contract                                      2  1175.30 1191.3
++ internet_type                                 3  1210.11 1228.1
++ number_of_referrals                           1  1219.07 1233.1
++ flg_internet_service                          1  1229.23 1243.2
++ tx_concentracao_cobranca_mes_q3               1  1233.10 1247.1
++ monthly_charge                                1  1246.70 1260.7
++ number_of_dependents                          1  1248.69 1262.7
++ qtd_servicos_principais                       1  1250.29 1264.3
++ tenure_in_months                              1  1254.85 1268.8
++ flg_unlimited_data                            1  1277.86 1291.9
++ offer                                         5  1271.30 1293.3
++ payment_method                                2  1290.21 1306.2
++ flg_paperless_billing                         1  1292.77 1306.8
++ qtd_streamings                                1  1300.90 1314.9
++ flg_streaming_movies                          1  1304.64 1318.6
++ tx_contrib_cobrancas_extras_cobranca_geral    1  1305.72 1319.7
++ flg_streaming_music                           1  1308.58 1322.6
++ total_long_distance_charges                   1  1310.83 1324.8
++ valor_cobrancas_extras                        1  1311.26 1325.3
++ flg_married                                   1  1318.24 1332.2
++ flg_streaming_tv                              1  1319.95 1334.0
++ avg_monthly_gb_download                       1  1324.21 1338.2
++ valor_cobranca_geral                          1  1328.19 1342.2
++ age                                           1  1329.58 1343.6
++ qtd_servicos_adicionais                       1  1331.61 1345.6
++ flg_premium_tech_support                      1  1332.74 1346.7
++ condado_renda_familiar_mediana                1  1334.35 1348.3
++ cltv                                          1  1335.11 1349.1
++ total_charges                                 1  1335.40 1349.4
++ flg_device_protection_plan                    1  1335.49 1349.5
++ flg_multiple_lines                            1  1335.96 1350.0
++ condado_idade_mediana_habitantes              1  1338.12 1352.1
+<none>                                             1340.93 1352.9
++ total_extra_data_charges                      1  1340.00 1354.0
++ gender                                        1  1340.14 1354.1
++ total_refunds                                 1  1340.35 1354.3
++ condado_densidade_populacional                1  1340.35 1354.3
++ condado_tx_habitantes_homens                  1  1340.53 1354.5
++ tx_valores_reembolsados                       1  1340.56 1354.6
++ flg_phone_service                             1  1340.71 1354.7
++ condado_qtd_habitantes                        1  1340.83 1354.8
++ condado_indice_gini_desigualdade_renda        1  1340.86 1354.9
++ condado_tx_habitantes_menor_18_anos           1  1340.87 1354.9
++ avg_monthly_long_distance_charges             1  1340.89 1354.9
++ flg_online_backup                             1  1340.92 1354.9
++ condado_area_terra_m2                         1  1340.93 1354.9
++ county                                       57  1234.31 1360.3
++ city                                       1100   583.89 2795.9
+
+Step:  AIC=1191.3
+flg_churn ~ satisfaction_score + flg_online_security + contract
+
+                                               Df Deviance    AIC
++ number_of_referrals                           1  1091.41 1109.4
++ number_of_dependents                          1  1097.53 1115.5
++ internet_type                                 3  1111.71 1133.7
++ monthly_charge                                1  1116.10 1134.1
++ flg_internet_service                          1  1129.32 1147.3
++ tx_concentracao_cobranca_mes_q3               1  1133.72 1151.7
++ qtd_servicos_principais                       1  1140.28 1158.3
++ qtd_streamings                                1  1140.74 1158.7
++ flg_streaming_movies                          1  1141.80 1159.8
++ offer                                         5  1136.69 1162.7
++ age                                           1  1148.97 1167.0
++ flg_paperless_billing                         1  1149.63 1167.6
++ payment_method                                2  1148.15 1168.2
++ flg_streaming_music                           1  1153.40 1171.4
++ flg_unlimited_data                            1  1153.62 1171.6
++ flg_streaming_tv                              1  1156.37 1174.4
++ flg_multiple_lines                            1  1160.30 1178.3
++ tx_contrib_cobrancas_extras_cobranca_geral    1  1161.42 1179.4
++ flg_device_protection_plan                    1  1167.88 1185.9
++ flg_married                                   1  1169.56 1187.6
++ condado_renda_familiar_mediana                1  1169.85 1187.8
++ qtd_servicos_adicionais                       1  1170.44 1188.4
++ tenure_in_months                              1  1170.48 1188.5
++ flg_premium_tech_support                      1  1171.29 1189.3
++ total_charges                                 1  1172.87 1190.9
+<none>                                             1175.30 1191.3
++ valor_cobranca_geral                          1  1173.68 1191.7
++ condado_idade_mediana_habitantes              1  1173.81 1191.8
++ condado_densidade_populacional                1  1174.10 1192.1
++ avg_monthly_gb_download                       1  1174.45 1192.5
++ total_extra_data_charges                      1  1174.49 1192.5
++ condado_tx_habitantes_menor_18_anos           1  1174.83 1192.8
++ gender                                        1  1174.87 1192.9
++ avg_monthly_long_distance_charges             1  1174.94 1192.9
++ cltv                                          1  1174.97 1193.0
++ condado_indice_gini_desigualdade_renda        1  1175.10 1193.1
++ condado_tx_habitantes_homens                  1  1175.14 1193.1
++ tx_valores_reembolsados                       1  1175.18 1193.2
++ total_refunds                                 1  1175.22 1193.2
++ flg_phone_service                             1  1175.27 1193.3
++ flg_online_backup                             1  1175.27 1193.3
++ valor_cobrancas_extras                        1  1175.28 1193.3
++ condado_qtd_habitantes                        1  1175.28 1193.3
++ total_long_distance_charges                   1  1175.29 1193.3
++ condado_area_terra_m2                         1  1175.29 1193.3
++ county                                       57  1076.10 1206.1
++ city                                       1100   484.42 2700.4
+
+Step:  AIC=1109.41
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals
+
+                                               Df Deviance    AIC
++ monthly_charge                                1  1021.44 1041.4
++ internet_type                                 3  1023.29 1047.3
++ flg_internet_service                          1  1041.95 1062.0
++ qtd_streamings                                1  1051.67 1071.7
++ number_of_dependents                          1  1051.69 1071.7
++ qtd_servicos_principais                       1  1052.25 1072.2
++ flg_streaming_movies                          1  1056.87 1076.9
++ flg_married                                   1  1060.24 1080.2
++ flg_streaming_tv                              1  1063.99 1084.0
++ payment_method                                2  1063.08 1085.1
++ age                                           1  1066.17 1086.2
++ flg_unlimited_data                            1  1067.49 1087.5
++ tx_concentracao_cobranca_mes_q3               1  1067.73 1087.7
++ flg_paperless_billing                         1  1068.04 1088.0
++ flg_multiple_lines                            1  1068.60 1088.6
++ flg_streaming_music                           1  1068.63 1088.6
++ offer                                         5  1060.87 1088.9
++ tx_contrib_cobrancas_extras_cobranca_geral    1  1076.11 1096.1
++ flg_device_protection_plan                    1  1076.27 1096.3
++ qtd_servicos_adicionais                       1  1080.46 1100.5
++ total_charges                                 1  1081.72 1101.7
++ valor_cobranca_geral                          1  1082.93 1102.9
++ condado_renda_familiar_mediana                1  1083.94 1103.9
++ avg_monthly_gb_download                       1  1088.14 1108.1
++ valor_cobrancas_extras                        1  1089.04 1109.0
++ flg_premium_tech_support                      1  1089.13 1109.1
++ total_long_distance_charges                   1  1089.14 1109.1
+<none>                                             1091.41 1109.4
++ condado_idade_mediana_habitantes              1  1090.23 1110.2
++ total_extra_data_charges                      1  1090.28 1110.3
++ condado_densidade_populacional                1  1090.62 1110.6
++ gender                                        1  1090.75 1110.8
++ condado_tx_habitantes_menor_18_anos           1  1090.87 1110.9
++ avg_monthly_long_distance_charges             1  1090.87 1110.9
++ flg_online_backup                             1  1090.95 1111.0
++ condado_area_terra_m2                         1  1091.02 1111.0
++ cltv                                          1  1091.04 1111.0
++ condado_indice_gini_desigualdade_renda        1  1091.08 1111.1
++ tenure_in_months                              1  1091.26 1111.3
++ condado_tx_habitantes_homens                  1  1091.32 1111.3
++ tx_valores_reembolsados                       1  1091.33 1111.3
++ condado_qtd_habitantes                        1  1091.35 1111.3
++ total_refunds                                 1  1091.37 1111.4
++ flg_phone_service                             1  1091.41 1111.4
++ county                                       57   990.47 1122.5
++ city                                       1100   420.26 2638.3
+
+Step:  AIC=1041.44
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge
+
+                                               Df Deviance     AIC
++ tx_concentracao_cobranca_mes_q3               1   966.13  988.13
++ number_of_dependents                          1   993.40 1015.40
++ offer                                         5   986.02 1016.02
++ flg_married                                   1   997.76 1019.76
++ flg_premium_tech_support                      1  1005.68 1027.68
++ age                                           1  1008.61 1030.61
++ tenure_in_months                              1  1008.86 1030.86
++ qtd_servicos_adicionais                       1  1011.63 1033.63
++ flg_online_backup                             1  1013.08 1035.08
++ total_charges                                 1  1013.60 1035.60
++ valor_cobranca_geral                          1  1015.37 1037.37
++ flg_phone_service                             1  1015.86 1037.86
++ payment_method                                2  1013.86 1037.86
++ condado_renda_familiar_mediana                1  1016.14 1038.14
++ flg_paperless_billing                         1  1016.88 1038.88
+<none>                                             1021.44 1041.44
++ cltv                                          1  1019.64 1041.64
++ qtd_servicos_principais                       1  1019.80 1041.80
++ avg_monthly_gb_download                       1  1019.85 1041.85
++ flg_internet_service                          1  1020.10 1042.10
++ condado_idade_mediana_habitantes              1  1020.26 1042.26
++ total_long_distance_charges                   1  1020.38 1042.38
++ valor_cobrancas_extras                        1  1020.41 1042.41
++ condado_tx_habitantes_menor_18_anos           1  1020.56 1042.56
++ flg_streaming_movies                          1  1020.60 1042.60
++ total_refunds                                 1  1020.68 1042.68
++ qtd_streamings                                1  1020.76 1042.76
++ flg_multiple_lines                            1  1020.94 1042.94
++ flg_device_protection_plan                    1  1021.08 1043.08
++ condado_area_terra_m2                         1  1021.18 1043.18
++ flg_streaming_music                           1  1021.19 1043.19
++ gender                                        1  1021.19 1043.19
++ condado_tx_habitantes_homens                  1  1021.24 1043.24
++ flg_streaming_tv                              1  1021.25 1043.25
++ condado_densidade_populacional                1  1021.32 1043.32
++ total_extra_data_charges                      1  1021.36 1043.36
++ condado_indice_gini_desigualdade_renda        1  1021.36 1043.36
++ condado_qtd_habitantes                        1  1021.38 1043.38
++ avg_monthly_long_distance_charges             1  1021.43 1043.43
++ flg_unlimited_data                            1  1021.44 1043.44
++ tx_valores_reembolsados                       1  1021.44 1043.44
++ tx_contrib_cobrancas_extras_cobranca_geral    1  1021.44 1043.44
++ internet_type                                 3  1019.18 1045.18
++ county                                       57   930.36 1064.36
++ city                                       1100   392.30 2612.30
+
+Step:  AIC=988.13
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3
+
+                                               Df Deviance     AIC
++ flg_married                                   1   931.54  955.54
++ number_of_dependents                          1   939.70  963.70
++ age                                           1   952.94  976.94
++ flg_premium_tech_support                      1   952.95  976.95
++ flg_phone_service                             1   955.75  979.75
++ condado_renda_familiar_mediana                1   959.24  983.24
++ qtd_servicos_adicionais                       1   960.29  984.29
++ offer                                         5   953.04  985.04
++ flg_online_backup                             1   961.32  985.32
++ qtd_servicos_principais                       1   961.49  985.49
++ flg_paperless_billing                         1   961.94  985.94
++ flg_multiple_lines                            1   963.45  987.45
++ payment_method                                2   961.78  987.78
+<none>                                              966.13  988.13
++ flg_streaming_movies                          1   964.56  988.56
++ qtd_streamings                                1   964.61  988.61
++ condado_tx_habitantes_menor_18_anos           1   964.72  988.72
++ cltv                                          1   964.81  988.81
++ avg_monthly_gb_download                       1   964.86  988.86
++ flg_internet_service                          1   964.89  988.89
++ valor_cobrancas_extras                        1   964.94  988.94
++ flg_device_protection_plan                    1   964.99  988.99
++ total_long_distance_charges                   1   965.00  989.00
++ condado_idade_mediana_habitantes              1   965.09  989.09
++ gender                                        1   965.10  989.10
++ flg_streaming_tv                              1   965.34  989.34
++ total_extra_data_charges                      1   965.61  989.61
++ flg_streaming_music                           1   965.74  989.74
++ tx_contrib_cobrancas_extras_cobranca_geral    1   965.81  989.81
++ total_charges                                 1   965.86  989.86
++ condado_tx_habitantes_homens                  1   965.86  989.86
++ condado_indice_gini_desigualdade_renda        1   965.87  989.87
++ condado_densidade_populacional                1   965.95  989.95
++ avg_monthly_long_distance_charges             1   966.03  990.03
++ tx_valores_reembolsados                       1   966.04  990.04
++ condado_qtd_habitantes                        1   966.07  990.07
++ total_refunds                                 1   966.09  990.09
++ flg_unlimited_data                            1   966.12  990.12
++ tenure_in_months                              1   966.13  990.13
++ valor_cobranca_geral                          1   966.13  990.13
++ condado_area_terra_m2                         1   966.13  990.13
++ internet_type                                 3   964.09  992.09
++ county                                       57   878.10 1014.10
++ city                                       1100   373.17 2595.17
+
+Step:  AIC=955.54
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married
+
+                                               Df Deviance     AIC
++ number_of_dependents                          1   887.58  913.58
++ flg_premium_tech_support                      1   918.87  944.87
++ age                                           1   919.96  945.96
++ flg_phone_service                             1   921.86  947.86
++ offer                                         5   918.48  952.48
++ qtd_servicos_adicionais                       1   926.63  952.63
++ flg_online_backup                             1   926.75  952.75
++ condado_renda_familiar_mediana                1   926.97  952.97
++ flg_paperless_billing                         1   927.20  953.20
++ qtd_servicos_principais                       1   928.61  954.61
++ flg_internet_service                          1   929.45  955.45
+<none>                                              931.54  955.54
++ cltv                                          1   929.78  955.78
++ flg_streaming_movies                          1   929.92  955.92
++ qtd_streamings                                1   929.93  955.93
++ total_charges                                 1   929.96  955.96
++ condado_idade_mediana_habitantes              1   930.10  956.10
++ avg_monthly_gb_download                       1   930.18  956.18
++ flg_device_protection_plan                    1   930.26  956.26
++ payment_method                                2   928.42  956.42
++ gender                                        1   930.50  956.50
++ condado_tx_habitantes_menor_18_anos           1   930.62  956.62
++ flg_streaming_tv                              1   930.70  956.70
++ tenure_in_months                              1   930.71  956.71
++ flg_multiple_lines                            1   930.72  956.72
++ valor_cobranca_geral                          1   930.88  956.88
++ tx_contrib_cobrancas_extras_cobranca_geral    1   930.94  956.94
++ total_extra_data_charges                      1   931.03  957.03
++ flg_streaming_music                           1   931.10  957.10
++ total_refunds                                 1   931.12  957.12
++ condado_tx_habitantes_homens                  1   931.24  957.24
++ avg_monthly_long_distance_charges             1   931.30  957.30
++ condado_indice_gini_desigualdade_renda        1   931.30  957.30
++ valor_cobrancas_extras                        1   931.35  957.35
++ total_long_distance_charges                   1   931.37  957.37
++ condado_qtd_habitantes                        1   931.40  957.40
++ condado_area_terra_m2                         1   931.45  957.45
++ flg_unlimited_data                            1   931.49  957.49
++ tx_valores_reembolsados                       1   931.52  957.52
++ condado_densidade_populacional                1   931.53  957.53
++ internet_type                                 3   928.86  958.86
++ county                                       57   846.26  984.26
++ city                                       1100   363.53 2587.53
+
+Step:  AIC=913.58
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents
+
+                                               Df Deviance     AIC
++ flg_premium_tech_support                      1   875.79  903.79
++ flg_phone_service                             1   878.77  906.77
++ age                                           1   880.54  908.54
++ qtd_servicos_adicionais                       1   882.23  910.23
++ offer                                         5   874.30  910.30
++ condado_renda_familiar_mediana                1   882.44  910.44
++ flg_online_backup                             1   882.56  910.56
++ flg_paperless_billing                         1   883.18  911.18
++ qtd_servicos_principais                       1   884.16  912.16
++ qtd_streamings                                1   884.53  912.53
++ flg_streaming_movies                          1   885.22  913.22
+<none>                                              887.58  913.58
++ total_charges                                 1   885.59  913.59
++ payment_method                                2   883.62  913.62
++ condado_tx_habitantes_homens                  1   885.80  913.80
++ condado_tx_habitantes_menor_18_anos           1   885.85  913.85
++ cltv                                          1   886.03  914.03
++ flg_streaming_tv                              1   886.07  914.07
++ condado_idade_mediana_habitantes              1   886.08  914.08
++ flg_internet_service                          1   886.09  914.09
++ flg_multiple_lines                            1   886.20  914.20
++ gender                                        1   886.23  914.23
++ flg_streaming_music                           1   886.23  914.23
++ tenure_in_months                              1   886.35  914.35
++ flg_device_protection_plan                    1   886.55  914.55
++ valor_cobranca_geral                          1   886.67  914.67
++ total_extra_data_charges                      1   886.69  914.69
++ tx_contrib_cobrancas_extras_cobranca_geral    1   886.89  914.89
++ condado_indice_gini_desigualdade_renda        1   887.00  915.00
++ avg_monthly_long_distance_charges             1   887.15  915.15
++ tx_valores_reembolsados                       1   887.22  915.22
++ total_refunds                                 1   887.23  915.23
++ condado_densidade_populacional                1   887.27  915.27
++ condado_qtd_habitantes                        1   887.38  915.38
++ valor_cobrancas_extras                        1   887.45  915.45
++ total_long_distance_charges                   1   887.47  915.47
++ avg_monthly_gb_download                       1   887.54  915.54
++ condado_area_terra_m2                         1   887.57  915.57
++ flg_unlimited_data                            1   887.57  915.57
++ internet_type                                 3   885.60  917.60
++ county                                       57   802.95  942.95
++ city                                       1100   334.39 2560.39
+
+Step:  AIC=903.79
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support
+
+                                               Df Deviance     AIC
++ flg_phone_service                             1   864.15  894.15
++ offer                                         5   861.61  899.61
++ age                                           1   870.54  900.54
++ flg_paperless_billing                         1   870.69  900.69
++ condado_renda_familiar_mediana                1   871.17  901.17
++ qtd_servicos_principais                       1   871.63  901.63
++ qtd_streamings                                1   872.09  902.09
++ flg_online_backup                             1   872.12  902.12
++ flg_streaming_movies                          1   873.04  903.04
++ flg_internet_service                          1   873.74  903.74
+<none>                                              875.79  903.79
++ flg_streaming_tv                              1   873.86  903.86
++ condado_tx_habitantes_menor_18_anos           1   873.94  903.94
++ flg_streaming_music                           1   874.13  904.13
++ condado_tx_habitantes_homens                  1   874.22  904.22
++ condado_idade_mediana_habitantes              1   874.23  904.23
++ cltv                                          1   874.24  904.24
++ total_charges                                 1   874.36  904.36
++ flg_device_protection_plan                    1   874.50  904.50
++ total_extra_data_charges                      1   874.69  904.69
++ tx_contrib_cobrancas_extras_cobranca_geral    1   874.72  904.72
++ gender                                        1   874.78  904.78
++ tenure_in_months                              1   874.82  904.82
++ flg_multiple_lines                            1   875.01  905.01
++ payment_method                                2   873.04  905.04
++ valor_cobranca_geral                          1   875.10  905.10
++ condado_indice_gini_desigualdade_renda        1   875.11  905.11
++ avg_monthly_long_distance_charges             1   875.12  905.12
++ tx_valores_reembolsados                       1   875.17  905.17
++ condado_qtd_habitantes                        1   875.24  905.24
++ condado_densidade_populacional                1   875.46  905.46
++ total_refunds                                 1   875.53  905.53
++ qtd_servicos_adicionais                       1   875.55  905.55
++ valor_cobrancas_extras                        1   875.73  905.73
++ total_long_distance_charges                   1   875.75  905.75
++ avg_monthly_gb_download                       1   875.79  905.79
++ flg_unlimited_data                            1   875.79  905.79
++ condado_area_terra_m2                         1   875.79  905.79
++ internet_type                                 3   871.81  905.81
++ county                                       57   791.02  933.02
++ city                                       1100   329.25 2557.25
+
+Step:  AIC=894.15
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service
+
+                                               Df Deviance     AIC
++ offer                                         5   849.60  889.60
++ flg_online_backup                             1   859.18  891.18
++ condado_renda_familiar_mediana                1   859.39  891.39
++ age                                           1   860.02  892.02
++ flg_paperless_billing                         1   860.55  892.55
++ qtd_servicos_adicionais                       1   861.48  893.48
+<none>                                              864.15  894.15
++ condado_idade_mediana_habitantes              1   862.35  894.35
++ tx_contrib_cobrancas_extras_cobranca_geral    1   862.46  894.46
++ total_charges                                 1   862.51  894.51
++ cltv                                          1   862.54  894.54
++ flg_multiple_lines                            1   862.61  894.61
++ condado_tx_habitantes_menor_18_anos           1   862.70  894.70
++ condado_tx_habitantes_homens                  1   862.86  894.86
++ tenure_in_months                              1   862.87  894.87
++ gender                                        1   863.13  895.13
++ flg_unlimited_data                            1   863.20  895.20
++ qtd_streamings                                1   863.25  895.25
++ valor_cobrancas_extras                        1   863.35  895.35
++ total_long_distance_charges                   1   863.40  895.40
++ total_extra_data_charges                      1   863.41  895.41
++ tx_valores_reembolsados                       1   863.49  895.49
++ flg_streaming_movies                          1   863.51  895.51
++ condado_indice_gini_desigualdade_renda        1   863.52  895.52
++ flg_streaming_music                           1   863.55  895.55
++ condado_qtd_habitantes                        1   863.67  895.67
++ valor_cobranca_geral                          1   863.69  895.69
++ avg_monthly_long_distance_charges             1   863.79  895.79
++ flg_device_protection_plan                    1   863.84  895.84
++ flg_streaming_tv                              1   863.88  895.88
++ condado_densidade_populacional                1   863.90  895.90
++ total_refunds                                 1   863.97  895.97
++ flg_internet_service                          1   863.97  895.97
++ qtd_servicos_principais                       1   863.97  895.97
++ avg_monthly_gb_download                       1   863.99  895.99
++ condado_area_terra_m2                         1   864.14  896.14
++ payment_method                                2   862.28  896.28
++ internet_type                                 3   861.61  897.61
++ county                                       57   779.41  923.41
++ city                                       1100   317.04 2547.04
+
+Step:  AIC=889.6
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer
+
+                                               Df Deviance     AIC
++ flg_online_backup                             1   844.21  886.21
++ age                                           1   845.32  887.32
++ condado_renda_familiar_mediana                1   845.77  887.77
++ qtd_servicos_adicionais                       1   846.34  888.34
++ flg_paperless_billing                         1   846.71  888.71
++ condado_idade_mediana_habitantes              1   846.99  888.99
+<none>                                              849.60  889.60
++ tx_contrib_cobrancas_extras_cobranca_geral    1   847.77  889.77
++ flg_multiple_lines                            1   848.10  890.10
++ gender                                        1   848.19  890.19
++ total_charges                                 1   848.24  890.24
++ condado_tx_habitantes_homens                  1   848.28  890.28
++ cltv                                          1   848.36  890.36
++ total_extra_data_charges                      1   848.38  890.38
++ flg_unlimited_data                            1   848.46  890.46
++ valor_cobrancas_extras                        1   848.59  890.59
++ condado_tx_habitantes_menor_18_anos           1   848.64  890.64
++ total_long_distance_charges                   1   848.68  890.68
++ tenure_in_months                              1   848.77  890.77
++ qtd_streamings                                1   848.95  890.95
++ condado_qtd_habitantes                        1   849.07  891.07
++ condado_indice_gini_desigualdade_renda        1   849.16  891.16
++ avg_monthly_gb_download                       1   849.16  891.16
++ total_refunds                                 1   849.21  891.21
++ flg_streaming_movies                          1   849.23  891.23
++ flg_streaming_music                           1   849.23  891.23
++ tx_valores_reembolsados                       1   849.27  891.27
++ flg_streaming_tv                              1   849.28  891.28
++ avg_monthly_long_distance_charges             1   849.29  891.29
++ valor_cobranca_geral                          1   849.32  891.32
++ condado_densidade_populacional                1   849.39  891.39
++ flg_device_protection_plan                    1   849.40  891.40
++ flg_internet_service                          1   849.48  891.48
++ qtd_servicos_principais                       1   849.48  891.48
++ condado_area_terra_m2                         1   849.59  891.59
++ payment_method                                2   847.92  891.92
++ internet_type                                 3   847.48  893.48
++ county                                       57   766.26  920.26
++ city                                       1100   309.15 2549.15
+
+Step:  AIC=886.21
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup
+
+                                               Df Deviance     AIC
++ age                                           1   840.36  884.36
++ flg_paperless_billing                         1   841.12  885.12
++ condado_renda_familiar_mediana                1   841.22  885.22
++ condado_idade_mediana_habitantes              1   841.71  885.71
+<none>                                              844.21  886.21
++ tx_contrib_cobrancas_extras_cobranca_geral    1   842.34  886.34
++ total_extra_data_charges                      1   842.82  886.82
++ flg_unlimited_data                            1   842.90  886.90
++ condado_tx_habitantes_homens                  1   842.96  886.96
++ gender                                        1   843.01  887.01
++ flg_multiple_lines                            1   843.14  887.14
++ valor_cobrancas_extras                        1   843.20  887.20
++ cltv                                          1   843.27  887.27
++ total_long_distance_charges                   1   843.29  887.29
++ condado_tx_habitantes_menor_18_anos           1   843.36  887.36
++ condado_qtd_habitantes                        1   843.52  887.52
++ total_charges                                 1   843.54  887.54
++ total_refunds                                 1   843.68  887.68
++ condado_indice_gini_desigualdade_renda        1   843.73  887.73
++ qtd_streamings                                1   843.73  887.73
++ tenure_in_months                              1   843.83  887.83
++ flg_streaming_music                           1   843.83  887.83
++ avg_monthly_gb_download                       1   843.91  887.91
++ avg_monthly_long_distance_charges             1   843.95  887.95
++ flg_streaming_movies                          1   843.97  887.97
++ flg_internet_service                          1   843.97  887.97
++ qtd_servicos_principais                       1   843.97  887.97
++ qtd_servicos_adicionais                       1   844.00  888.00
++ tx_valores_reembolsados                       1   844.01  888.01
++ condado_densidade_populacional                1   844.02  888.02
++ flg_device_protection_plan                    1   844.04  888.04
++ flg_streaming_tv                              1   844.05  888.05
++ valor_cobranca_geral                          1   844.15  888.15
++ condado_area_terra_m2                         1   844.20  888.20
++ payment_method                                2   842.53  888.53
++ internet_type                                 3   840.62  888.62
++ county                                       57   762.70  918.70
++ city                                       1100   307.77 2549.77
+
+Step:  AIC=884.36
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup + age
+
+                                               Df Deviance     AIC
++ condado_renda_familiar_mediana                1   837.52  883.52
++ flg_paperless_billing                         1   837.74  883.74
++ condado_idade_mediana_habitantes              1   837.84  883.84
++ tx_contrib_cobrancas_extras_cobranca_geral    1   838.26  884.26
+<none>                                              840.36  884.36
++ flg_streaming_music                           1   838.43  884.43
++ gender                                        1   839.13  885.13
++ condado_tx_habitantes_homens                  1   839.16  885.16
++ qtd_streamings                                1   839.18  885.18
++ cltv                                          1   839.22  885.22
++ total_extra_data_charges                      1   839.24  885.24
++ valor_cobrancas_extras                        1   839.28  885.28
++ flg_unlimited_data                            1   839.32  885.32
++ total_long_distance_charges                   1   839.36  885.36
++ flg_multiple_lines                            1   839.40  885.40
++ condado_qtd_habitantes                        1   839.55  885.55
++ condado_tx_habitantes_menor_18_anos           1   839.56  885.56
++ total_charges                                 1   839.65  885.65
++ condado_indice_gini_desigualdade_renda        1   839.78  885.78
++ total_refunds                                 1   839.79  885.79
++ tenure_in_months                              1   839.97  885.97
++ avg_monthly_long_distance_charges             1   839.98  885.98
++ avg_monthly_gb_download                       1   840.04  886.04
++ flg_streaming_movies                          1   840.07  886.07
++ flg_device_protection_plan                    1   840.09  886.09
++ tx_valores_reembolsados                       1   840.13  886.13
++ flg_internet_service                          1   840.14  886.14
++ qtd_servicos_principais                       1   840.14  886.14
++ flg_streaming_tv                              1   840.15  886.15
++ condado_densidade_populacional                1   840.16  886.16
++ qtd_servicos_adicionais                       1   840.28  886.28
++ valor_cobranca_geral                          1   840.29  886.29
++ condado_area_terra_m2                         1   840.35  886.35
++ internet_type                                 3   836.47  886.47
++ payment_method                                2   838.74  886.74
++ county                                       57   756.32  914.32
++ city                                       1100   303.76 2547.76
+
+Step:  AIC=883.52
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana
+
+                                               Df Deviance     AIC
++ condado_idade_mediana_habitantes              1   832.62  880.62
++ flg_paperless_billing                         1   834.88  882.88
++ tx_contrib_cobrancas_extras_cobranca_geral    1   835.37  883.37
+<none>                                              837.52  883.52
++ condado_tx_habitantes_homens                  1   835.77  883.77
++ flg_streaming_music                           1   835.98  883.98
++ gender                                        1   836.24  884.24
++ cltv                                          1   836.37  884.37
++ condado_qtd_habitantes                        1   836.39  884.39
++ flg_multiple_lines                            1   836.45  884.45
++ valor_cobrancas_extras                        1   836.46  884.46
++ total_extra_data_charges                      1   836.47  884.47
++ flg_unlimited_data                            1   836.53  884.53
++ total_long_distance_charges                   1   836.53  884.53
++ qtd_streamings                                1   836.63  884.63
++ total_charges                                 1   836.77  884.77
++ condado_area_terra_m2                         1   836.78  884.78
++ total_refunds                                 1   836.87  884.87
++ tenure_in_months                              1   837.04  885.04
++ avg_monthly_long_distance_charges             1   837.13  885.13
++ condado_indice_gini_desigualdade_renda        1   837.21  885.21
++ avg_monthly_gb_download                       1   837.22  885.22
++ flg_device_protection_plan                    1   837.25  885.25
++ tx_valores_reembolsados                       1   837.28  885.28
++ flg_streaming_tv                              1   837.31  885.31
++ flg_internet_service                          1   837.32  885.32
++ qtd_servicos_principais                       1   837.32  885.32
++ flg_streaming_movies                          1   837.38  885.38
++ valor_cobranca_geral                          1   837.44  885.44
++ qtd_servicos_adicionais                       1   837.44  885.44
++ condado_tx_habitantes_menor_18_anos           1   837.49  885.49
++ condado_densidade_populacional                1   837.50  885.50
++ payment_method                                2   835.75  885.75
++ internet_type                                 3   833.86  885.86
++ county                                       56   756.32  914.32
++ city                                       1100   303.69 2549.69
+
+Step:  AIC=880.62
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + 
+    condado_idade_mediana_habitantes
+
+                                               Df Deviance     AIC
++ condado_tx_habitantes_menor_18_anos           1   826.95  876.95
++ tx_contrib_cobrancas_extras_cobranca_geral    1   830.55  880.55
++ flg_paperless_billing                         1   830.60  880.60
+<none>                                              832.62  880.62
++ flg_streaming_music                           1   830.95  880.95
++ condado_tx_habitantes_homens                  1   830.98  880.98
++ gender                                        1   831.31  881.31
++ cltv                                          1   831.32  881.32
++ total_extra_data_charges                      1   831.42  881.42
++ flg_unlimited_data                            1   831.50  881.50
++ flg_multiple_lines                            1   831.58  881.58
++ qtd_streamings                                1   831.64  881.64
++ valor_cobrancas_extras                        1   831.70  881.70
++ total_long_distance_charges                   1   831.78  881.78
++ total_charges                                 1   831.83  881.83
++ total_refunds                                 1   831.99  881.99
++ tenure_in_months                              1   832.15  882.15
++ condado_qtd_habitantes                        1   832.16  882.16
++ avg_monthly_long_distance_charges             1   832.25  882.25
++ avg_monthly_gb_download                       1   832.26  882.26
++ flg_device_protection_plan                    1   832.29  882.29
++ flg_streaming_tv                              1   832.35  882.35
++ condado_indice_gini_desigualdade_renda        1   832.42  882.42
++ tx_valores_reembolsados                       1   832.42  882.42
++ flg_internet_service                          1   832.44  882.44
++ qtd_servicos_principais                       1   832.44  882.44
++ condado_densidade_populacional                1   832.45  882.45
++ flg_streaming_movies                          1   832.48  882.48
++ valor_cobranca_geral                          1   832.51  882.51
++ condado_area_terra_m2                         1   832.54  882.54
++ qtd_servicos_adicionais                       1   832.54  882.54
++ internet_type                                 3   828.56  882.56
++ payment_method                                2   830.85  882.85
++ county                                       55   756.32  914.32
++ city                                       1100   303.69 2551.69
+
+Step:  AIC=876.95
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + 
+    condado_idade_mediana_habitantes + condado_tx_habitantes_menor_18_anos
+
+                                               Df Deviance     AIC
++ condado_densidade_populacional                1    823.5   875.5
+<none>                                               827.0   877.0
++ tx_contrib_cobrancas_extras_cobranca_geral    1    825.2   877.2
++ flg_paperless_billing                         1    825.3   877.3
++ flg_streaming_music                           1    825.3   877.3
++ gender                                        1    825.6   877.6
++ cltv                                          1    825.7   877.7
++ total_extra_data_charges                      1    825.8   877.8
++ flg_unlimited_data                            1    825.8   877.8
++ qtd_streamings                                1    825.9   877.9
++ valor_cobrancas_extras                        1    826.0   878.0
++ total_charges                                 1    826.0   878.0
++ total_long_distance_charges                   1    826.1   878.1
++ flg_multiple_lines                            1    826.3   878.3
++ condado_tx_habitantes_homens                  1    826.3   878.3
++ tenure_in_months                              1    826.4   878.4
++ avg_monthly_gb_download                       1    826.5   878.5
++ total_refunds                                 1    826.5   878.5
++ flg_streaming_tv                              1    826.6   878.6
++ flg_device_protection_plan                    1    826.6   878.6
++ tx_valores_reembolsados                       1    826.6   878.6
++ condado_area_terra_m2                         1    826.6   878.6
++ avg_monthly_long_distance_charges             1    826.7   878.7
++ flg_streaming_movies                          1    826.8   878.8
++ internet_type                                 3    822.8   878.8
++ condado_indice_gini_desigualdade_renda        1    826.8   878.8
++ valor_cobranca_geral                          1    826.8   878.8
++ flg_internet_service                          1    826.8   878.8
++ qtd_servicos_principais                       1    826.8   878.8
++ qtd_servicos_adicionais                       1    826.9   878.9
++ condado_qtd_habitantes                        1    826.9   878.9
++ payment_method                                2    825.2   879.2
++ city                                       1099   6704.1  8952.1
++ county                                       55  26581.4 26741.4
+
+Step:  AIC=875.53
+flg_churn ~ satisfaction_score + flg_online_security + contract + 
+    number_of_referrals + monthly_charge + tx_concentracao_cobranca_mes_q3 + 
+    flg_married + number_of_dependents + flg_premium_tech_support + 
+    flg_phone_service + offer + flg_online_backup + age + condado_renda_familiar_mediana + 
+    condado_idade_mediana_habitantes + condado_tx_habitantes_menor_18_anos + 
+    condado_densidade_populacional
+
+                                               Df Deviance    AIC
+<none>                                               823.5  875.5
++ tx_contrib_cobrancas_extras_cobranca_geral    1    821.9  875.9
++ flg_streaming_music                           1    821.9  875.9
++ total_extra_data_charges                      1    822.0  876.0
++ flg_unlimited_data                            1    822.1  876.1
++ flg_paperless_billing                         1    822.1  876.1
++ gender                                        1    822.1  876.1
++ cltv                                          1    822.1  876.1
++ qtd_streamings                                1    822.4  876.4
++ total_charges                                 1    822.4  876.4
++ valor_cobrancas_extras                        1    822.7  876.7
++ total_long_distance_charges                   1    822.8  876.8
++ flg_multiple_lines                            1    822.9  876.9
++ tenure_in_months                              1    822.9  876.9
++ total_refunds                                 1    823.0  877.0
++ flg_streaming_tv                              1    823.2  877.2
++ avg_monthly_gb_download                       1    823.2  877.2
++ flg_device_protection_plan                    1    823.2  877.2
++ tx_valores_reembolsados                       1    823.2  877.2
++ internet_type                                 3    819.3  877.3
++ condado_tx_habitantes_homens                  1    823.3  877.3
++ flg_streaming_movies                          1    823.3  877.3
++ valor_cobranca_geral                          1    823.3  877.3
++ flg_internet_service                          1    823.3  877.3
++ qtd_servicos_principais                       1    823.3  877.3
++ avg_monthly_long_distance_charges             1    823.3  877.3
++ qtd_servicos_adicionais                       1    823.4  877.4
++ condado_area_terra_m2                         1    823.4  877.4
++ condado_indice_gini_desigualdade_renda        1    823.5  877.5
++ condado_qtd_habitantes                        1    823.5  877.5
++ payment_method                                2    821.6  877.6
++ county                                       53    756.3  914.3
++ city                                       1098   6776.2 9024.2
+There were 50 or more warnings (use warnings() to see the first 50)
+> 
